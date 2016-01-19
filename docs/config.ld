@@ -493,6 +493,7 @@ new_type("layoutmod"   , "Widget_layouts"   , true)
 new_type("popupmod"    , "Popups_and_bars"  , true)
 new_type("utillib"     , "Utility_libraries", true)
 new_type("themelib"    , "Theme_related_libraries", true)
+new_type("tilinglib"   , "Client_tiling", true)
 
 file = {
     -- C parts of libraries

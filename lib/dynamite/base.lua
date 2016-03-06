@@ -586,8 +586,6 @@ local function register(name, bl, ...)
         l_obj.honor_workarea = generator.honor_workarea ~= false
         l_obj.honor_gap      = generator.honor_gap      ~= false
 
-        l_obj.mouse_resize_handler = l.mouse_resize_handler
-
         --TODO implement :reset() here
 
         return l_obj

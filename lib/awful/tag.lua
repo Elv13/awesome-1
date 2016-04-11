@@ -833,12 +833,15 @@ end
 -- instance every time the layout is set. If they do, the instance will be
 -- cached and re-used.
 --
---
 -- The client organized by the layout will fill the screen `tiling_area`
 -- section:
 --
 -- @DOC_screen_taglayout_EXAMPLE@
 --
+--
+-- Here is a simple stateful layout example:
+--
+--@DOC_awful_tag_simple_layout_EXAMPLE@
 -- @property layout
 -- @tparam layout|function layout A layout table or a constructor function
 -- @propemits false false

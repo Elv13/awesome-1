@@ -711,6 +711,14 @@ end
 -- When multiple columns are used, the master width remains the same, but
 -- the other columns split the remaining space among them:
 --
+-- Here is the property effect on the tiled layouts:
+--
+--@DOC_awful_layout_dynamic_suit_tile_mwfact_EXAMPLE@
+--
+-- Here is the property effect on the magnifier layout:
+--
+--@DOC_awful_layout_dynamic_suit_magnifier_mwfact_EXAMPLE@
+--
 -- @DOC_screen_mwfact2_EXAMPLE@
 --
 -- @property master_width_factor
@@ -1083,6 +1091,8 @@ end
 -- This property allows to waste space on the screen in the name of style,
 -- unicorns and readability.
 --
+-- @DOC_awful_layout_dynamic_suit_tile_gap_EXAMPLE@
+--
 -- In this example, the value of `gap` is set to 20:
 --
 -- @DOC_screen_gaps_EXAMPLE@
@@ -1290,6 +1300,10 @@ end
 --
 -- @DOC_sequences_tag_master_count_EXAMPLE@
 --
+-- Here is the property effect on the tiled layouts:
+--
+--@DOC_awful_layout_dynamic_suit_tile_nmaster_EXAMPLE@
+--
 -- @property master_count
 -- @tparam integer master_count nmaster Only positive values are accepted
 -- @emits property::nmaster Deprecated.
@@ -1404,6 +1418,10 @@ end
 --- Set the number of columns.
 --
 -- @DOC_sequences_tag_column_count_EXAMPLE@
+--
+-- Here is the property effect on the tiled layouts:
+--
+--@DOC_awful_layout_dynamic_suit_tile_ncol_EXAMPLE@
 --
 -- @property column_count
 -- @tparam integer ncol Has to be greater than 1

@@ -347,7 +347,7 @@ execute_process(
 
 execute_process(
         COMMAND lua ${SOURCE_DIR}/docs/05-awesomerc.md.lua
-        ${BUILD_DIR}/05-awesomerc.md.lua ${SOURCE_DIR}/awesomerc.lua
+        ${BUILD_DIR}/docs/05-awesomerc.md ${SOURCE_DIR}/awesomerc.lua
         ${BUILD_DIR}/awesomerc.lua
 )
 

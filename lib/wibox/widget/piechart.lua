@@ -70,7 +70,7 @@ local function draw(self, context, cr, width, height)
         local end_angle = start + 2*math.pi*(v/sum)
         local center_x, center_y = width/2,height/2
 
-        local col = colors and color(colors[math.mod(count,col_count)+1]) or nil
+        local col = colors and color(colors[math.fmod(count,col_count)+1]) or nil
 
         pie(cr, width, height, start, end_angle, radius)
 

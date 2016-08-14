@@ -171,7 +171,7 @@ local function add_links(line)
     for _, module in ipairs {
         "awful", "wibox", "gears", "naughty", "menubar", "beautiful"
     } do
-        if line:match(module.."\.") then
+        if line:match(module.."%.") then
             line = line:gsub("("..module.."[.a-zA-Z]+)", "`%1`")
         end
     end

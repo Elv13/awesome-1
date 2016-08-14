@@ -10,7 +10,7 @@ local name_attr = gio.FILE_ATTRIBUTE_STANDARD_NAME
 -- Recursive file scanner
 local function get_all_files(path, ext, ret)
     ret = ret or {}
-    local enumerator = gio.File.new_for_path(path):enumerate_children(
+    local enumerator, _ = gio.File.new_for_path(path):enumerate_children(
         "FILE_ATTRIBUTE_STANDARD_NAME", 0, nil, nil
     )
 
@@ -27,7 +27,7 @@ local function get_all_files(path, ext, ret)
     return ret
 end
 
-local all_files = get_all_files("/home/lepagee/dev/awesome/lib/", "lua")
+local all_files = get_all_files("./lib/", "lua")
 
 local beautiful_vars = {}
 
@@ -71,7 +71,7 @@ for _,file in ipairs(all_files) do
                 "</a>",
                 desc = buffer:gmatch("[- ]+([^\n.]*)")() or "",
                 mod  =table.concat(
-                    {file:gmatch("/([^/]+)/([^/]+)/([^/]+)\.lua")()}, '.'
+                    {file:gmatch("/([^/]+)/([^/]+)/([^/]+)%.lua")()}, '.'
                 )
             })
 

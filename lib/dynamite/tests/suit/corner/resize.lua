@@ -1,0 +1,46 @@
+-- --DOC_HIDE_ALL --DOC_GEN_IMAGE
+-- local template = ...
+--
+-- local corner = require("dynamite.suit.corner")
+--
+-- template.name = "dynamite::suit::corner::resize"
+--
+-- template.layout_name = "corner"
+--
+-- template.test = {
+--     fill_space = true;
+-- }
+--
+-- template.screens = {
+--     {
+--         width  = 128;
+--         height = 96;
+--         count  = 4;
+--     }
+-- }
+--
+-- template.tag_properties = {
+--     master_width_factor = 0.66
+-- }
+--
+-- for i=1, 4 do
+--     template.set_layout {
+--         screen = i;
+--         layout = corner;
+--     }
+--
+--     template.add_clients {
+--         x      = 0;
+--         y      = 0;
+--         width  = 35;
+--         height = 35;
+--         count  = i;
+--         screen = i,
+--     }
+-- end
+--
+-- -- template.layout = corner
+--
+-- template.arrange()
+--
+-- template.run()

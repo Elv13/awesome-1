@@ -28,7 +28,10 @@ local function update(w, screen)
     w._layoutbox_tooltip:set_text(name or "[no name]")
 
     local exists = name and beautiful["layout_" .. name]
-        and fs.file_readable(beautiful["layout_" .. name])
+        and (
+            type(beautiful["layout_" .. name]) ~= "string"
+            or fs.file_readable(beautiful["layout_" .. name])
+        )
 
     w.imagebox:set_image(exists and beautiful["layout_" .. name] or nil)
     w.textbox:set_text(exists and  "" or name)

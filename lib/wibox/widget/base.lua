@@ -708,6 +708,17 @@ local function drill(ids, content)
     -- Create layouts based on metatable's __call.
     local l = layout.is_widget and layout or layout()
 
+    -- Check if the widget added it's own element by ids
+    --FIXME #2181
+    if l and l._private and l._private.by_id then
+        for k, v in pairs(l._private.by_id) do
+            ids[k] = ids[k] or {}
+            for _, v2 in ipairs(v) do
+                table.insert(ids[k], v2)
+            end
+        end
+    end
+
     -- Get the number of children widgets (including nil widgets).
     local max, attributes, widgets = parse_table(content, l.allow_empty_widget)
 
@@ -732,6 +743,14 @@ local function drill(ids, content)
     end
 
     if widgets and max > 0 then
+        -- Let some containers handle the template themselves.
+        -- This can be used for use cases such as lazy loading, repeaters or
+        -- conditional loaders.
+        if l._accept_templates and l.set_templates then
+            l:set_templates(widgets)
+            return l, id
+        end
+
         -- Add all widgets.
         for k = 1, max do
             -- ipairs cannot be used on sparse tables.
@@ -742,7 +761,7 @@ local function drill(ids, content)
                     e, id2 = drill(ids, v)
                     widgets[k] = e
                 elseif (not v.is_widget) and is_callable(v) then
-                     widgets[k] = v()
+                    widgets[k] = v()
                 end
                 base.check_widget(widgets[k])
 
@@ -754,8 +773,10 @@ local function drill(ids, content)
                 end
             end
         end
+    end
 
-        -- Replace all children (if any) with the new ones.
+    -- Replace all children (if any) with the new ones.
+    if widgets then
         l:set_children(widgets)
     end
 

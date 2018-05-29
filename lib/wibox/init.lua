@@ -116,8 +116,21 @@ function wibox:_apply_shape()
         return
     end
 
-    local geo = self:geometry()
-    local bw = self.border_width
+    local geo   = self:geometry()
+    local bw    = self.border_width
+
+    -- Do not set the shape before the size is fully set. Even if width or height
+    -- are set, it's silly to set a shape on them unless both are set.
+    if geo.width <= 1 or geo.height <= 1 then return end
+
+    local cache = self._shape_geo_cache or {}
+
+    -- The callback is also executed when `x` and `y` change or the same geometry
+    -- is re-applied. This seems to account for most calls. Given this function
+    -- is very expensive to call, ignore those cases.
+    if geo.width == cache.w and geo.height == cache.h and bw == cache.bw then
+        return
+    end
 
     -- First handle the bounding shape (things including the border)
     local img = cairo.ImageSurface(cairo.Format.A1, geo.width + 2*bw, geo.height + 2*bw)
@@ -148,10 +161,17 @@ function wibox:_apply_shape()
     cr:stroke()
     self.shape_clip = img._native
     img:finish()
+
+    self._shape_geo_cache = {
+        w = geo.width,
+        h = geo.height,
+        bw = bw
+    }
 end
 
 function wibox:set_shape(shape)
     self._shape = shape
+    self._shape_geo_cache = nil
     self:_apply_shape()
     self:emit_signal("property::shape", shape)
 end

@@ -758,11 +758,11 @@ end
 --
 -- Here is the property effect on the tiled layouts:
 --
---@DOC_awful_layout_dynamic_suit_tile_mwfact_EXAMPLE@
+--@DOC_dynamite_suit_tile_mwfact_EXAMPLE@
 --
 -- Here is the property effect on the magnifier layout:
 --
---@DOC_awful_layout_dynamic_suit_magnifier_mwfact_EXAMPLE@
+--@DOC_dynamite_suit_magnifier_mwfact_EXAMPLE@
 --
 -- @DOC_screen_mwfact2_EXAMPLE@
 --
@@ -1142,7 +1142,7 @@ end
 -- Note that pixels cannot be divided, the gap will be rounded to the closest
 -- multiplier of 2.
 --
--- @DOC_awful_layout_dynamic_suit_tile_gap_EXAMPLE@
+-- @DOC_dynamite_suit_tile_gap_EXAMPLE@
 --
 -- In this example, the value of `gap` is set to 20:
 --
@@ -1364,7 +1364,7 @@ end
 --
 -- Here is the property effect on the tiled layouts:
 --
---@DOC_awful_layout_dynamic_suit_tile_nmaster_EXAMPLE@
+--@DOC_dynamite_suit_tile_nmaster_EXAMPLE@
 --
 -- @property master_count
 -- @tparam integer master_count nmaster Only positive values are accepted
@@ -1483,7 +1483,7 @@ end
 --
 -- Here is the property effect on the tiled layouts:
 --
---@DOC_awful_layout_dynamic_suit_tile_ncol_EXAMPLE@
+--@DOC_dynamite_suit_tile_ncol_EXAMPLE@
 --
 -- @property column_count
 -- @tparam integer ncol Has to be greater than 1

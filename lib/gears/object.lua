@@ -4,6 +4,13 @@
 --
 -- It provide basic observer pattern, signaling and dynamic properties.
 --
+-- Note that it is also possible to listen to signal on the parent class too.
+-- In that case, the signal handler first argument will be the object sending
+-- the signal and all other arguments will be the same as they are when
+-- connecting directly to the object.
+--
+-- @DOC_text_gears_object_global@
+--
 -- @author Uli Schlachter
 -- @copyright 2010 Uli Schlachter
 -- @utillib gears.object

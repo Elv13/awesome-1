@@ -6,6 +6,7 @@
 -- @submodule client
 ---------------------------------------------------------------------------
 local grect = require("gears.geometry").rectangle
+local gtable = require("gears.table")
 
 local capi =
 {
@@ -153,6 +154,45 @@ function focus.history.previous()
     local c = focus.history.get(s, 1)
     if c then
         c:emit_signal("request::activate", "client.focus.history.previous",
+                      {raise=false})
+    end
+end
+
+--- Select the previous client relative to the focused one.
+-- @tparam[opt=true] boolean wrap If there is no previous, select the most
+--  recent one.
+-- @tparam[opt=nil] function filter A function returning a boolean to either
+--  accept or reject the client. If it's rejected, it will keep searching until
+--  it runs out of options.
+-- @treturn client The client
+function focus.history.select_previous(wrap, filter)
+    local idx = (gtable.hasitem(focus.history.list, capi.client.focus) or 1) + 1
+
+    local c = gtable.iterate(
+        focus.history.list, filter or function() return true end, idx, 1, true
+    )()
+
+    if c then
+        c:emit_signal("request::activate", "client.focus.focus.history.select_previous",
+                      {raise=false})
+    end
+end
+
+--- Select the next client relative to the focused one.
+-- @tparam[opt=true] boolean wrap If there is no next client, select the last one.
+-- @tparam[opt=nil] function filter A function returning a boolean to either
+--  accept or reject the client. If it's rejected, it will keep searching until
+--  it runs out of options.
+-- @treturn client The client
+function focus.history.select_next(wrap, filter)
+    local idx = (gtable.hasitem(focus.history.list, capi.client.focus) or 1) - 1
+
+    local c = gtable.iterate(
+        focus.history.list, filter or function() return true end, idx, -1, true
+    )()
+
+    if c then
+        c:emit_signal("request::activate", "client.focus.focus.history.select_next",
                       {raise=false})
     end
 end

@@ -310,7 +310,7 @@ end
 local function get_cal_wibox(caltype, args)
     args = args or {}
 
-    local ret = wibox{ ontop   = true,
+    local ret = wibox { ontop   = true,
                        opacity = args.opacity or 1,
                        bg      = args.bg or gears.color.transparent
     }

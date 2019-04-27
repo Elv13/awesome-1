@@ -288,24 +288,40 @@ end
 -- Returns an iterator to cycle through all elements of a table that match a
 -- given criteria, starting from the first element or the given index.
 --
--- @tparam table t The table to iterate.
--- @tparam func  filter A function that returns true to indicate a positive
---   match.
--- @param func.item The item to filter.
--- @tparam[opt=1] int start Index to start iterating from.
---   Default is 1 (=> start of the table).
--- @treturn func
+-- @class function
+-- @name iterate
+-- @tparam table t      the table to iterate
+-- @tparam[opt=nil] function filter a function that returns true to indicate a positive match
+-- @tparam number start  what index to start iterating from.  Default is 1 (=> start of
+--  the table)
+-- @tparam[opt=1] number step_size A positive or negative quantity of element
+--  to iterate in each step.
+-- @tparam[opt=false] boolean cycle Allow number greater than #t and smaller than
+--  one in the `start` argument and assume it just cycled many time over the table.
 -- @staticfct gears.table.iterate
-function gtable.iterate(t, filter, start)
+function gtable.iterate(t, filter, start, step_size, cycle)
+    step_size = step_size or 1
+
     local count  = 0
-    local index  = start or 1
     local length = #t
+    local index  = start or 1
+
+    if cycle then
+        if index < 1 then
+            index = length + index
+            print("SSSS", start, index)
+        end
+
+        index = math.max(index % (length + 1), 1)
+    end
+    print(index, step_size)
 
     return function ()
         while count < length do
             local item = t[index]
-            index = gmath.cycle(#t, index + 1)
-            count = count + 1
+            index = gmath.cycle(#t, index + step_size)
+            print("FF",index, start)
+            count = count + step_size
             if filter(item) then return item end
         end
     end

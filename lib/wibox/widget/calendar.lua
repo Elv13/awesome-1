@@ -408,6 +408,9 @@ function calendar.year(date, font)
     return get_calendar("year", date, font)
 end
 
+function calendar.mt.__call(_, ...)
+    return calendar.month(...)
+end
 
 return setmetatable(calendar, calendar.mt)
 

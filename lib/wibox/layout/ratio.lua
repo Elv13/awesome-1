@@ -99,6 +99,11 @@ local function normalize(self)
     assert(new_sum > 0.99 and new_sum < 1.01)
 end
 
+-- Disallow sub pixel layouts, they look blurry
+-- function ratio:fit(context, width, height)
+--     return floor(width), floor(height)
+-- end
+
 function ratio:layout(context, width, height)
     local preliminary_results = {}
     local pos,spacing = 0, self._private.spacing
@@ -175,6 +180,11 @@ function ratio:layout(context, width, height)
     -- Only the `justify` strategy changes the original widget size.
     to_redistribute = (strategy == "justify") and to_redistribute or 0
 
+    -- All the space lost to the `floor` calls go in the last entry if there
+    -- is no redistribution strategy.
+--     local sum_w, sum_h, cur_x, cur_y = 0, 0, 0, 0
+--     local remainder_carrier = #preliminary_results
+
     for k, entry in ipairs(preliminary_results) do
         local v, x, y, w, h, is_void = unpack(entry)
 
@@ -184,13 +194,24 @@ function ratio:layout(context, width, height)
                 h = is_void and 0 or h + (to_redistribute / (active))
                 y = space_front + real_pos
                 real_pos = real_pos + h + (is_void and 0 or spacing)
-
             else
                 w = is_void and 0 or w + (to_redistribute / (active))
                 x = space_front + real_pos
                 real_pos = real_pos + w + (is_void and 0 or spacing)
+
             end
         end
+
+        -- Prevent off by one (or off by 2 in the most unlucky case)
+--         if k == remainder_carrier and (strategy == "default" or to_redistribute > 0) then
+--             if dir == "y" then
+--                 h = (height - cur_y)
+--             else
+--                 w = (width - cur_x)
+--             end
+--         end
+
+--         sum_w, sum_h, cur_x, cur_y = sum_w + w, sum_h + h, cur_x + x, cur_y + y
 
         if k > 1 and abspace > 0 and spacing_widget then
             table.insert(result, base.place_widget_at(

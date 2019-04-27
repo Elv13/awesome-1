@@ -1,0 +1,9 @@
+local api = treesome.api(screen[1])
+Adding a client
+Adding a client
+api.horizontal_split = true
+Adding a client
+api.insert           = true
+Adding a client
+Adding a client
+Adding a client

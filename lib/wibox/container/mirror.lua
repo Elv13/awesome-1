@@ -1,7 +1,8 @@
 ---------------------------------------------------------------------------
--- Reflect a widget along one or both axis.
+--- Reflect the content widget along the vertical and/or horizontal axis.
 --
 --@DOC_wibox_container_defaults_mirror_EXAMPLE@
+--
 -- @author dodo
 -- @copyright 2012 dodo
 -- @containermod wibox.container.mirror
@@ -67,8 +68,7 @@ function mirror:set_children(children)
     self:set_widget(children[1])
 end
 
---- Reset this layout. The widget will be removed and the axes reset.
---
+--- Reset this container. The widget will be removed and the axes reset.
 -- @method reset
 -- @interface container
 function mirror:reset()
@@ -78,8 +78,11 @@ function mirror:reset()
 end
 
 function mirror:set_reflection(reflection)
-    if type(reflection) ~= 'table' then
-        error("Invalid type of reflection for mirror layout: " ..
+    local t = type(reflection)
+    if t == "number" then
+        t = {vertical = t, horizontal = t}
+    elseif type(reflection) ~= 'table' then
+        error("Invalid type of reflection for mirror container: " ..
               type(reflection) .. " (should be a table)")
     end
     for _, ref in ipairs({"horizontal", "vertical"}) do
@@ -91,8 +94,7 @@ function mirror:set_reflection(reflection)
     self:emit_signal("property::reflection", reflection)
 end
 
---- Get the reflection of this mirror layout.
---
+--- Get the reflection of this mirror container.
 -- @property reflection
 -- @tparam table reflection A table of booleans with the keys "horizontal", "vertical".
 -- @tparam boolean reflection.horizontal
@@ -100,13 +102,26 @@ end
 -- @propemits true false
 
 function mirror:get_reflection()
-    return { horizontal = self._private.horizontal, vertical = self._private.vertical }
+    -- Allows to do mywidget.reflection.vertical = true
+    return setmetatable({}, {
+        __index = {
+            horizontal = self._private.horizontal,
+            vertical   = self._private.vertical
+        },
+        __newindex = function(_, k, v)
+            assert(k == "vertical" or k == "horizontal")
+            self._private[k] = v
+            self:emit_signal("widget::layout_changed")
+        end
+    })
 end
 
 --- Returns a new mirror container.
 --
--- A mirror container mirrors a given widget. Use the `widget` property to set
--- the widget and `reflection` property to set the direction.
+-- A mirror container mirrors a given widget. Use the `widget` to set the
+-- content and the `reflection.horizontal`/`reflection.vertical` properties
+-- to set the reflection.
+--
 -- horizontal and vertical are by default false which doesn't change anything.
 --
 -- @tparam[opt] widget widget The widget to display.

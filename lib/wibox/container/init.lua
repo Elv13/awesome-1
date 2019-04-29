@@ -9,6 +9,7 @@ local base = require("wibox.widget.base")
 
 return setmetatable({
     rotate = require("wibox.container.rotate");
+    scale = require("wibox.container.scale");
     margin = require("wibox.container.margin");
     mirror = require("wibox.container.mirror");
     constraint = require("wibox.container.constraint");

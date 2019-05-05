@@ -270,7 +270,7 @@ lua_class_t client_class;
  *
  * Default implementation: `awful.ewmh.activate`.
  *
- * To implement focus stealing filters see `awful.ewmh.add_activate_filter`.
+ * To implement focus stealing filters see `awful.client.add_request_filter`.
  *
  * @signal request::activate
  * @tparam string context The context where this signal was used.

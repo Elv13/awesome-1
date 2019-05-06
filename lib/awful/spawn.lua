@@ -762,8 +762,34 @@ capi.client.connect_signal ("request::manage" , spawn.on_snid_callback )
 
 -- The format is hexadecimal strings delimited by `;`.
 capi.awesome.register_xproperty("_spawn_cache", "string")
+capi.awesome.register_xproperty("_auto_start" , "boolean")
 
 gobject._setup_class_signals(spawn)
+
+--- Emitted the first time Awesome is started.
+--
+-- This signal can be used to detect when executing some task needs to be
+-- done only once. It will not be emitted when awesome is restarted. It will
+-- also not be emitted if Awesome is killed, another window manager used and
+-- Awesome gets started again.
+--
+-- Please note that there is a concept called a session manager. Many existing
+-- projects, including some display manager (DM), come with one. In theory, it
+-- is the session manager job to handle autostarting programs. There is no way
+-- for Awesome to detect if the "autostart" program list has already been
+-- executed by something else. However, it is very common for Awesome to be used
+-- without a session manager. It is also useful, for the sake of self-contained
+-- `rc.lua` scripts, to have this capability built-in. Use with restraint.
+--
+-- @signal request::autostart
+
+-- Emit only once, do not emit until a new X11 session is started.
+if not root.get_xproperty("_auto_start") then
+    gtimer.delayed_call(function()
+        spawn.emit_signal("request::autostart")
+        root.set_xproperty("_auto_start", true)
+    end)
+end
 
 return setmetatable(spawn, { __call = function(_, ...) return spawn.spawn(...) end })
 -- vim: filetype=lua:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:textwidth=80

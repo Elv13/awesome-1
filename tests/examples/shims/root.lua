@@ -37,6 +37,16 @@ function root._keys(k)
     return keys
 end
 
+local xprops = {}
+
+function root.get_xproperty(p)
+    return xprops[p]
+end
+
+function root.set_xproperty(p, v)
+    xprops[p] = v
+end
+
 -- FAKE INPUTS --
 
 -- Turn keysym into modkey names

@@ -32,6 +32,7 @@
 #include "common/xutil.h"
 #include "objects/button.h"
 #include "common/luaclass.h"
+#include "objects/window.h"
 #include "xwindow.h"
 
 #include "math.h"
@@ -515,7 +516,7 @@ luaA_root_get_content(lua_State *L)
     surface = cairo_xcb_surface_create(globalconf.connection,
                                        globalconf.screen->root,
                                        globalconf.default_visual,
-                                       globalconf.screen->width_in_pixels, 
+                                       globalconf.screen->width_in_pixels,
                                        globalconf.screen->height_in_pixels);
 
     lua_pushlightuserdata(L, surface);
@@ -575,6 +576,33 @@ static int
 luaA_root_set_call_handler(lua_State *L)
 {
     return luaA_registerfct(L, 1, &miss_call_handler);
+}
+
+/** Change a xproperty.
+ *
+ * @param name The name of the X11 property
+ * @param value The new value for the property
+ * @function set_xproperty
+ */
+static int
+luaA_root_set_xproperty(lua_State *L)
+{
+    lua_pushnil(L);
+    lua_insert(L, -3);
+    return window_set_xproperty(L, globalconf.screen->root, 2, 3);
+}
+
+/** Get the value of a xproperty.
+ *
+ * @param name The name of the X11 property
+ * @function get_xproperty
+ */
+static int
+luaA_root_get_xproperty(lua_State *L)
+{
+    lua_pushnil(L);
+    lua_insert(L, -2);
+    return window_get_xproperty(L, globalconf.screen->root, 2);
 }
 
 /**
@@ -646,6 +674,10 @@ const struct luaL_Reg awesome_root_methods[] =
 
 const struct luaL_Reg awesome_root_meta[] =
 {
+    { "set_xproperty", luaA_root_set_xproperty },
+    { "get_xproperty", luaA_root_get_xproperty },
+    { "__index", luaA_default_index },
+    { "__newindex", luaA_default_newindex },
     { NULL, NULL }
 };
 

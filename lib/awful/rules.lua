@@ -552,6 +552,16 @@ end
 
 client.connect_signal("manage", rules.apply)
 
+-- Request rules to be added **after** all modules are loaded, but before the
+-- clients are managed. This allows module to listen to rules being added and
+-- either modify them or add their own in the right order.
+local function request_rules()
+    client.emit_signal("request::rules")
+    client.disconnect_signal("new", request_rules)
+end
+
+client.connect_signal("new", request_rules)
+
 --@DOC_rule_COMMON@
 
 return setmetatable(rules, {

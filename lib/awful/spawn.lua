@@ -347,7 +347,6 @@ end
 -- @treturn[1] ?string The startup notification ID, if `sn` is not false, or
 --   a `callback` is provided.
 -- @treturn[2] string Error message.
--- @staticfct awful.spawn
 function spawn.spawn(cmd, sn_rules, callback)
     if cmd and cmd ~= "" then
         local enable_sn = (sn_rules ~= false or callback)
@@ -367,7 +366,6 @@ end
 --- Spawn a program using the shell.
 -- This calls `cmd` with `$SHELL -c` (via `awful.util.shell`).
 -- @tparam string cmd The command.
--- @staticfct awful.spawn.with_shell
 function spawn.with_shell(cmd)
     if cmd and cmd ~= "" then
         cmd = { util.shell, "-c", cmd }
@@ -394,7 +392,6 @@ end
 --   termination.
 -- @treturn[1] Integer the PID of the forked process.
 -- @treturn[2] string Error message.
--- @staticfct awful.spawn.with_line_callback
 function spawn.with_line_callback(cmd, callbacks)
     local stdout_callback, stderr_callback, done_callback, exit_callback =
         callbacks.stdout, callbacks.stderr, callbacks.output_done, callbacks.exit
@@ -440,7 +437,6 @@ end
 -- @treturn[1] Integer the PID of the forked process.
 -- @treturn[2] string Error message.
 -- @see spawn.with_line_callback
--- @staticfct awful.spawn.easy_async
 function spawn.easy_async(cmd, callback)
     local stdout = ''
     local stderr = ''
@@ -491,7 +487,6 @@ end
 -- @treturn[1] Integer the PID of the forked process.
 -- @treturn[2] string Error message.
 -- @see spawn.with_line_callback
--- @staticfct awful.spawn.easy_async_with_shell
 function spawn.easy_async_with_shell(cmd, callback)
     return spawn.easy_async({ util.shell, "-c", cmd or "" }, callback)
 end
@@ -503,7 +498,6 @@ end
 -- @tparam[opt] function done_callback Function that is called when the
 --   operation finishes (e.g. due to end of file).
 -- @tparam[opt=false] boolean close Should the stream be closed after end-of-file?
--- @staticfct awful.spawn.read_lines
 function spawn.read_lines(input_stream, line_callback, done_callback, close)
     local stream = Gio.DataInputStream.new(input_stream)
     local function done()
@@ -556,13 +550,13 @@ local function is_running(hash, matcher)
     local status = spawn.single_instance_manager.by_uid[hash]
     if not status then return false end
 
+    if #status.instances == 0 then return false end
+
     if matcher then
         for _, c in ipairs(client.get()) do
             if matcher(c) then return true end
         end
     end
-
-    if #status.instances == 0 then return false end
 
     for _, c in ipairs(status.instances) do
         if c.valid then return true end

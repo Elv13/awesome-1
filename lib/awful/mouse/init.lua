@@ -10,6 +10,7 @@
 local floating = require("awful.layout.suit.floating")
 local aplace = require("awful.placement")
 local gdebug = require("gears.debug")
+local gobject = require("gears.object")
 local type = type
 local ipairs = ipairs
 local capi =
@@ -377,6 +378,8 @@ capi.mouse.set_index_miss_handler(function(_,key)
     end
 end)
 
+gobject._setup_class_signals(mouse.object)
+
 --- Get or set the mouse coords.
 --
 --@DOC_awful_mouse_coords_EXAMPLE@
@@ -403,6 +406,8 @@ function mouse._get_client_mousebindings()
 end
 
 mouse.resize_handler = mouse.resize._resize_handler
+
+--@DOC_signals_COMMON@
 
 return mouse
 

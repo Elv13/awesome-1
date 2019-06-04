@@ -482,7 +482,7 @@ crules._execute = function(_, c, props, callbacks)
     -- Previously this was done in a second client.manage callback, but caused
     -- a race condition where the order of modules being loaded would change
     -- the outcome.
-    c:emit_signal("request::tag", nil, {reason="rules"})
+    c:emit_signal("request::tag", nil, {reason="rules", screen = c.screen})
 
     -- By default, rc.lua uses no_overlap+no_offscreen placement. This has to
     -- be executed before x/y/width/height/geometry as it would otherwise

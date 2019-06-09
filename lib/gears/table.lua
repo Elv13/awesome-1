@@ -288,8 +288,6 @@ end
 -- Returns an iterator to cycle through all elements of a table that match a
 -- given criteria, starting from the first element or the given index.
 --
--- @class function
--- @name iterate
 -- @tparam table t      the table to iterate
 -- @tparam[opt=nil] function filter a function that returns true to indicate a positive match
 -- @tparam number start  what index to start iterating from.  Default is 1 (=> start of

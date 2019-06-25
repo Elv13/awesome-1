@@ -19,7 +19,9 @@
  *
  */
 
-/** awesome screen API.
+/** The AwesomeWM screen API.
+ *
+ * This document describe how to use and manage screens.
  *
  * Screen objects can be added and removed over time. To get a callback for all
  * current and future screens, use `awful.screen.connect_for_each_screen`:
@@ -41,6 +43,22 @@
  * described in @{signals}.
  *
  * @DOC_uml_nav_tables_screen_EXAMPLE@
+ *
+ * Lifecycle
+ * =========
+ *
+ * The following diagram shows the various signals involved in the creation
+ * of screens:
+ *
+ *  ![Screen creation](../images/add_screen.svg)
+ *
+ * The following diagram shows what happen when the (physical) monitor areas
+ * change:
+ *
+ *  ![Screen creation](../images/change_screen.svg)
+ *
+ * See the documentation for the various signals to know more about how to
+ * change the decision taken during the screen creation.
  *
  * @author Julien Danjou &lt;julien@danjou.info&gt;
  * @copyright 2008-2009 Julien Danjou

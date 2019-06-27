@@ -29,6 +29,7 @@ local background = { mt = {} }
 -- more widely compatible version.
 function background._use_fallback_algorithm()
     background.before_draw_children = function(self, _, cr, width, height)
+
         local bw    = self._private.shape_border_width or 0
         local shape = self._private.shape or gshape.rectangle
 

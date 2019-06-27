@@ -60,6 +60,8 @@
  * See the documentation for the various signals to know more about how to
  * change the decision taken during the screen creation.
  *
+ * @DOC_uml_nav_tables_screen_EXAMPLE@
+ *
  * @author Julien Danjou &lt;julien@danjou.info&gt;
  * @copyright 2008-2009 Julien Danjou
  * @coreclassmod screen

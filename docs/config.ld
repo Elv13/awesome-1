@@ -538,6 +538,11 @@ file = {
         '../lib/beautiful/gtk.lua',
         '../lib/ruled/init.lua',
 
+        '../lib/dynamite/suit/init.lua',
+        '../lib/dynamite/resize.lua',
+        '../lib/dynamite/base.lua',
+        '../lib/dynamite/widget/init.lua',
+
         -- Ignore some parts of the widget library
         '../lib/awful/widget/init.lua',
         '../lib/naughty/layout/init.lua',

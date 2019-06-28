@@ -3,7 +3,6 @@ local args = {...}
 local typename = args[2]
 local parser = require("docs._parser")
 
-assert(typename)
 
 local files = {
     "./objects/"..typename..".c",

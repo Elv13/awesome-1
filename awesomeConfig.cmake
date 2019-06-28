@@ -19,7 +19,7 @@ if (GENERATE_DOC AND DO_COVERAGE)
     set(GENERATE_DOC OFF)
 endif()
 
-# {{{ Find external utilities
+# {{{ Find external utilitie
 macro(a_find_program var prg req)
     set(required ${req})
     find_program(${var} ${prg})

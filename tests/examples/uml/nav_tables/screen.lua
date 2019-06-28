@@ -97,5 +97,18 @@ module.generate_nav_table {
                 card  = "1..N",
             },
         },
+        {
+            association   = "association",
+            class         = "mouse",
+            from_property = "mouse.screen",
+            left = {
+                msg   = "Is below",
+                card  = "0..1",
+            },
+            right = {
+                msg   = "Is over",
+                card  = "0..1",
+            },
+        },
     }
 }

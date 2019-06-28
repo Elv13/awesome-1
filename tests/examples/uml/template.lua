@@ -174,9 +174,10 @@ local function gen_table_header(title, o)
 end
 
 local function get_table_row(path, class, prop)
+    local fixed_path = path:gmatch("(/images/.*)")()
     print([[<tr>
   <td>]].. class ..[[</td>
-  <td><img src="]]..path..[["></td>
+  <td><img src="..]]..fixed_path..[["></td>
   <td>]].. prop ..[[</td>
  </tr>]])
 end

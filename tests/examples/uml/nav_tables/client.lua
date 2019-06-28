@@ -85,7 +85,7 @@ module.generate_nav_table {
             },
         },
         {
-            association   = "aggregation",
+            association   = "association",
             class         = "mouse",
             from_property = "mouse.current_client",
             left = {

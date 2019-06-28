@@ -128,6 +128,8 @@ new_type("callback", "Callback functions prototype", false, "Parameters")
 new_type("rulesources", "Rule sources", false, "Parameters")
 -- gears.matcher / awful.rules rule components
 new_type("rulecomponent", "Rule components", false, "Type")
+-- gears.matcher / awful.rules matchinf properties.
+new_type("rulematcher", "Rule matching properties", false, "Type")
 -- Filter functions for the taglist/tasklist/layoutlist
 new_type("filterfunction", "List filters", false)
 -- Extra client properties available only in awful.rules/spawn constructs

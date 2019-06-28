@@ -51,11 +51,6 @@ Core components relationship
   <td><img src="../images/AUTOGEN_uml_nav_tables_tag6.svg"></td>
   <td>s.selected_tags</td>
  </tr>
-<tr>
-  <td>mouse</td>
-  <td><img src="../images/AUTOGEN_uml_nav_tables_tag7.svg"></td>
-  <td>mouse.screen</td>
- </tr>
 </table></td>
 </tr><tr>
   <td colspan=2 style="color:#00000044">

@@ -66,6 +66,11 @@ Core components relationship
   <td><img src="../images/AUTOGEN_uml_nav_tables_screen9.svg"></td>
   <td>n.screen</td>
  </tr>
+<tr>
+  <td>mouse</td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_screen10.svg"></td>
+  <td>mouse.screen</td>
+ </tr>
 </table></td>
 </tr><tr>
   <td colspan=2 style="color:#00000044">

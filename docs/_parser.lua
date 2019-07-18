@@ -205,6 +205,13 @@ local function parse_files(paths, property_name, matcher, name_matcher)
                                 table.insert(ret[names[insert_name]].mod, mod)
                             end
                         end
+                        table.insert(ret, {
+                            file = file,
+                            name = name:gsub("_", "_"),
+                            link = get_link(file, var, var:match(exp3):gsub("_", "\\_")),
+                            desc = buffer:gmatch("[-*/ \n]+([^\n.]*)")() or "",
+                            mod  = path_to_module(file),
+                        })
                     end
 
                     buffer = ""

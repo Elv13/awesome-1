@@ -87,6 +87,13 @@ function focus.filter(c)
         or not c.focusable then
         return nil
     end
+
+    -- Only allow focus stealing for selected tags.
+    local fp = #c:tags() == 1 and c:tags()[1].focus_policy or nil
+    if fp == "selected" and not c:tags()[1].selected then
+        return nil
+    end
+
     return c
 end
 

@@ -243,6 +243,8 @@ end
 --
 -- This adds a "buffer" section on each side of the screen.
 --
+-- @DOC_screen_padding_EXAMPLE@
+--
 -- Here is the property effect on a layout:
 --
 --@DOC_dynamite_suit_tile_padding_EXAMPLE@
@@ -638,6 +640,18 @@ local function normalize(ratios, size)
 
     return ret
 end
+
+--- Is this screen supposed to survive being unplugged.
+--
+-- Is the output area corresponding to this screen is removed, then pick
+-- another screen to remove and move this one to the area previously occupied
+-- by the other screen.
+--
+--TODO
+--
+-- @property persistent
+-- @see request::remove
+-- @see request::resize
 
 --- Split the screen into multiple screens.
 --

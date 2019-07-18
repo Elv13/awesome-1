@@ -5,10 +5,12 @@ local tile     = require("dynamite.suit.tile")
 
 screen._setup_grid(128, 96, {4})
 
-local function add_clients(s)
+local function add_clients(s, t)
     local x, y = s.geometry.x, s.geometry.y
     for _=1, 5 do
-        client.gen_fake{x = x+45, y = y+35, width=40, height=30, screen=s}:_hide()
+        local c = client.gen_fake{x = x+45, y = y+35, width=40, height=30, screen=s}
+        c:tags{t}
+        c:_hide()
     end
 end
 
@@ -16,7 +18,7 @@ end
 local tags = {}
 for i=1, 4 do
     tags[screen[i]] = a_tag.add("Test1", {screen=screen[i], selected = true})
-    add_clients(screen[i])
+    add_clients(screen[i], tags[screen[i]])
 end
 
 local function show_layout(f, s, name)

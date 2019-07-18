@@ -56,10 +56,11 @@ screen._setup_grid(64, 48, {5}, {workarea_sides=3}) --DOC_HIDE
 
 local tags = {} --DOC_HIDE
 
-local function add_clients(s, count) --DOC_HIDE
+local function add_clients(s, count, t) --DOC_HIDE
     local x, y = s.geometry.x, s.geometry.y --DOC_HIDE
     for _=1, count do --DOC_HIDE
         local c1 = client.gen_fake {x = x+45, y = y+35, width=40, height=30, screen=s} --DOC_HIDE
+        c1:tags{t} --DOC_HIDE
         c1:_hide() --DOC_HIDE
     end --DOC_HIDE
 end --DOC_HIDE
@@ -106,7 +107,7 @@ end --DOC_HIDE
 
 for j=1, 5 do --DOC_HIDE
     tags[screen[j]] = a_tag.add("Test"..j, {screen=screen[j], selected = true}) --DOC_HIDE
-    add_clients(screen[j],j) --DOC_HIDE
+    add_clients(screen[j],j,tags[screen[j]]) --DOC_HIDE
     show_layout(mycustomtilelayout, screen[j]) --DOC_HIDE
 end --DOC_HIDE
 

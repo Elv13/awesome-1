@@ -208,7 +208,7 @@
 -- This table contains the client properties that are valid when used the
 -- `sn_rules` or `prop` function argument. They are the same as in `ruled.client`.
 --
---@DOC_rules_index_COMMON@
+--@DOC_client_rules_index_COMMON@
 --
 -- @author Julien Danjou &lt;julien@danjou.info&gt;
 -- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;

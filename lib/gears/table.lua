@@ -443,6 +443,86 @@ function gtable.map(f, tbl)
     return t
 end
 
+--- Returns a **set** where each value if `t` is a key of the set.
+--
+-- @tparam table t The input table.
+-- @treturn table A table with all values of `t` as key and the number of
+--  instance as value.
+function gtable.count(t)
+    local ret = {}
+    for _, v in pairs(t) do
+        ret[v] = (ret[v] or 0) + 1
+    end
+
+    return ret
+end
+
+-- Create a table so all insertion and deletion are intercepted.
+--
+-- Please note that the `original` table can also have a metatable. It is
+-- preferred to avoid this since it is both slow and makes debugging nearly
+-- impossible.
+--
+-- Also note that it breaks `pairs()` and `ipairs()`. Since this function is
+-- supported for multiple Lua versions, there is no reliable way around this.
+--
+-- @tparam table original The table to be wrapped.
+-- @tparam table args The arguments.
+-- @tparam[opt=false] boolean args.recursive Also wrap all table inserted into
+--  the original table. Never use this if you plan to insert objects or
+--  external tables. This only wraps the tables inserted directly. It will *not*
+--  wrap the tables contained by the inserted tables. Also note that the tables
+--  inserted into the original table will be proxies. So `pairs()` and
+--  `ipairs()` wont work.
+-- @tparam function args.insert_callback Called when a new key is added. The
+--  function takes the key as first argument, the value as second, the root
+--  wrapped table as the 3rd argument. If `args.recursive` is set, a fourth
+--  argument will be the "leaf" table of the table tree.
+-- @tparam function args.modify_callback Called when a new key is added. The
+--  function takes the key as first argument, the value as second, the root
+--  wrapped table as the 3rd argument. If `args.recursive` is set, a fourth
+--  argument will be the "leaf" table of the table tree. The original table
+--  is modified *after* the callback, so the old value is still available.
+-- @tparam function args.remove_callback Called when a new key is added. The
+--  function takes the key as first argument, the value *to be removed*
+--  as second, the root wrapped table as the 3rd argument. If `args.recursive`
+--  is set, a fourth argument will be the "leaf" table of the table tree.
+-- @treturn table The proxy table.
+function gtable.proxy(original, args)
+    args = args or {}
+    assert(callbacks, "Using this function without any callback is useless")
+
+    local gen_newindex = nil
+    gen_newindex = function(input)
+        return function(self, key, value)
+            local t = type(value)
+
+            -- Wrap the new key.
+            if t == "table" and args.recursive then
+                value = setmetatable(value or {}, {
+                    __index    = value,
+                    __newindex = gen_newindex(value)
+                })
+            end
+
+            if t == "nil" and args.remove_callback and self[key] then
+                args.remove_callback(key, input[key], original, value)
+            elseif args.insert_callback and not input[key] then
+                args.insert_callback(key, value, original, value)
+            elseif args.modify_callback then
+                args.modify_callback(key, value, original, value)
+            end
+
+            input[key] = value
+        end
+    end
+
+    return setmetatable(original or {}, {
+        __index    = original,
+        __newindex = gen_newindex(original)
+    })
+end
+
 return gtable
 
 -- vim: filetype=lua:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:textwidth=80

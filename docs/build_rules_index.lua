@@ -3,7 +3,6 @@ local args = {...}
 local typename = args[2]
 local parser = require("docs._parser")
 
-
 local files = {
     "./objects/"..typename..".c",
     "./lib/awful/"..typename..".lua",

@@ -20,6 +20,18 @@
 --TODO add a property to prevent auto-removal (volatile)
 --TODO add a property to prevent auto-resizing
 --TODO add a replace_timeout to replace a screen with another
+--ruled.screen:
+--
+--TODO * add a way to select the smallest or biggest viewport when they
+--   are embedded into each other
+--TODO * add "has_smaller_embdedded" and "has_larger_embdedded" rule props
+--
+--TODO preserve strategies:
+-- * replace: Replace existing non-preserved screens
+-- * relocate: Relocate if a new viewport is added
+-- * destroy: Do not preserve
+
+
 
 --[[
 
@@ -67,7 +79,7 @@ awful.screen.rules.append_rule {
 -- @param string
 
 --- The least dense DPI of the area.
--- @rulematcher minimum_dpi
+-- @rulematcher minimum_dpi../awesomerc.lua
 -- @param number
 
 --- The least dense DPI of the area.
@@ -151,13 +163,13 @@ end
 -- rules until later.
 --
 -- @tparam client c The client.
-function module.apply(c, args)
+function module.apply(viewport, args)
     local callbacks, props = {}, {}
     for _, v in ipairs(trules._matching_source) do
-        v.callback(trules, c, props, callbacks)
+        v.callback(trules, viewport, props, callbacks)
     end
 
-    trules:_execute(c, props, callbacks, args)
+    trules:_execute(viewport, props, callbacks, args)
 end
 
 --- Add a new rule to the default set.

@@ -184,6 +184,8 @@ end
 function module.create_screen_handler(viewport)
     local geo = viewport.geometry
 
+    ruled.screen.apply(viewport)
+
     local s = capi.screen.fake_add(
         geo.x,
         geo.y,

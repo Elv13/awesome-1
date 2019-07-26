@@ -233,6 +233,8 @@ function screen._setup_grid(w, h, rows, args)
 end
 
 local function iter_scr(_, _, s)
+    if screen.count() == 0 then return nil end
+
     if not s then
         assert(screen[1])
         return screen[1], 1
@@ -263,6 +265,8 @@ screen._grid_horizontal_margin = 10
 screen.primary = screen[1]
 
 screen._track_workarea = false
+
+screen.automatic_factory = true
 
 function screen.count()
     return screen._count

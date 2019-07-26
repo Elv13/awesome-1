@@ -181,12 +181,19 @@ local function update_screen_viewport(s)
     end
 end
 
-function module.create_screen_handler(viewport)
+function module.create_screen_handler(viewport, args)
+    print("\n\nIN CREATE SCREEN HANDLER")
     local geo = viewport.geometry
 
-    ruled.screen.apply(viewport)
+    -- Let the rules create the screen.
 
-    local s = capi.screen.fake_add(
+    capi.screen.emit_signal("request::_rules_create", viewport, args)
+
+    -- The rules say to ignore this viewport.
+    if viewport.ignored then return end
+
+    -- Get the screen created by the rules or create one.
+    local s = viewport.screen or capi.screen.fake_add(
         geo.x,
         geo.y,
         geo.width,
@@ -338,6 +345,8 @@ capi.screen.connect_signal("property::_viewports", function(a)
     assert(#a > 0)
 
     local _, added, removed = update_viewports(true)
+
+    print("\n\nGOT VIEWPORTS", #added, #removed)
 
     local resized = {}
 

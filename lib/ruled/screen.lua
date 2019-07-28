@@ -272,6 +272,7 @@ end
 -- @tparam table viewport The client.
 -- @staticfct ruled.screen.apply
 function module._apply(viewport, args)
+    print("\n\nAPPLY")
     local callbacks, props = {}, {}
     for _, v in ipairs(srules._matching_source) do
         v.callback(srules, viewport, props, callbacks)

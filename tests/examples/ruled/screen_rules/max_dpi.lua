@@ -24,16 +24,21 @@ function screen._viewports() --DOC_HIDE
 
 end --DOC_HIDE
 
-module.add_event("Use the least dense DPI when multiple outputs are cloned", function() --DOC_HIDE
 
+module.add_event("Use the least dense DPI when multiple outputs are cloned", function() --DOC_HIDE
+    print("\n\nRULES")
     -- Use the least dense DPI when multiple outputs are cloned.
     ruled.screen.append_rule {
-        rule_greater = { inch_size = 50 }, -- Force a low DPI for large screens.
-        properties   = { dpi       = 72 },
+        rule_greater = { inch_maximum_size = 50 }, -- Force a low DPI for large screens.
+        properties   = { dpi               = 72 },
     }
 
     screen.emit_signal("property::_viewports", screen._viewports()) --DOC_HIDE
 
+    assert(screen.count() == 1) --DOC_HIDE
+                 print("\n\nDDDDD", screen[1].data.viewport.inch_maximum_size)
+
+    assert(screen[1].dpi == 72) --DOC_HIDE
     assert(screen.count() > 0) --DOC_HIDE
 
 end) --DOC_HIDE

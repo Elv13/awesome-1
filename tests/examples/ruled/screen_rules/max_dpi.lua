@@ -36,7 +36,7 @@ module.add_event("Use the least dense DPI when multiple outputs are cloned", fun
     screen.emit_signal("property::_viewports", screen._viewports()) --DOC_HIDE
 
     assert(screen.count() == 1) --DOC_HIDE
-                 print("\n\nDDDDD", screen[1].data.viewport.inch_maximum_size)
+                 print("\n\nDDDDD", screen[1].data.viewport.inch_maximum_size, screen[1].dpi)
 
     assert(screen[1].dpi == 72) --DOC_HIDE
     assert(screen.count() > 0) --DOC_HIDE

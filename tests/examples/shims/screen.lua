@@ -251,6 +251,10 @@ function screen._viewports()
     return {}
 end
 
+function screen._viewports()
+    return {}
+end
+
 function screen.fake_add(x,y,width,height)
     return screen._add_screen {
         x=x,y=y,width=width,height=height

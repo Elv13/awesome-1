@@ -6,7 +6,6 @@
 local file_path, image_path = ...
 require("_common_template")(...)
 local capi = {client = client, screen = screen}
-local cairo = require("lgi").cairo
 local Pango = require("lgi").Pango
 local PangoCairo = require("lgi").PangoCairo
 require("awful.screen")
@@ -20,6 +19,7 @@ local wibox = require("wibox")
 local beautiful = require("beautiful")
 
 local bar_size, radius = 18, 2
+local screen_scale_factor = 5
 
 local history = {}
 
@@ -39,15 +39,59 @@ local function draw_mouse(cr, x, y)
     cr:fill()
 end
 
+-- Instead of returning the maximum size, return the preferred one.
+local function fixed_fit2(self, context, orig_width, orig_height)
+    local width, height = orig_width, orig_height
+    local used_in_dir, used_max = 0, 0
+
+    for _, v in pairs(self._private.widgets) do
+        local w, h = wibox.widget.base.fit_widget(self, context, v, width, height)
+
+        -- Catch bugs before they crash Chrome (Firefox handles this better)
+        assert(w < 5000)
+        assert(h < 5000)
+
+        local in_dir, max
+        if self._private.dir == "y" then
+            max, in_dir = w, h
+            height = height - in_dir
+        else
+            in_dir, max = w, h
+            width = width - in_dir
+        end
+        if max > used_max then
+            used_max = max
+        end
+        used_in_dir = used_in_dir + in_dir
+    end
+
+    local spacing = self._private.spacing * (#self._private.widgets-1)
+
+    -- Catch bugs before they crash Chrome (Firefox handles this better)
+    assert(used_max    < 9000)
+    assert(used_in_dir < 9000)
+
+    if self._private.dir == "y" then
+        return used_max, used_in_dir + spacing
+    end
+    return used_in_dir + spacing, used_max
+end
+
 -- Imported from the Collision module.
 local function draw_lines()
     local ret = wibox.widget.base.make_widget()
 
-    function ret:fit(ctx, w, h)
+    function ret:fit()
+        local pager_w = math.max(root.size()/screen_scale_factor, 60)
+
+        --FIXME support multiple screens.
+        local w = (#screen[1].tags * pager_w)
+            + ((#screen[1].tags - 1)*5)
+
         return w, self.widget_pos and #self.widget_pos*6 or 30
     end
 
-    function ret:draw(ctx, cr, w, h)
+    function ret:draw(_, cr, _, h)
         if (not self.widget_pos) or (not self.pager_pos) then return end
 
         cr:set_line_width(1)
@@ -62,7 +106,6 @@ local function draw_lines()
             assert(point2.x and point2.width)
 
             local dx = (point1.x == 0 and radius or 0) + (point1.width and point1.width/2 or 0)
-            local dy = point1.y == 0 and radius or 0
 
             cr:move_to(bar_size+dx+point1.x, point1.y+2*radius)
             cr:line_to(bar_size+dx+point1.x, point2.y+(count-k)*((h-2*radius)/count)+2*radius)
@@ -81,16 +124,26 @@ local function draw_lines()
     return ret
 end
 
-local function gen_vertical_line(dot)
+local function gen_vertical_line(args)
+    args = args or {}
+
     local w = wibox.widget.base.make_widget()
 
-    function w:draw(ctx, cr, w, h)
+    function w:draw(_, cr, w2, h)
         cr:set_source_rgba(0,0,0,0.5)
-        cr:rectangle(w/2-0.5, 0, 1, h)
+
+        if args.begin then
+            cr:rectangle(w2/2-0.5, h/2, 1, h/2)
+        elseif args.finish then
+            cr:rectangle(w2/2-0.5, 0, 1, h/2)
+        else
+            cr:rectangle(w2/2-0.5, 0, 1, h)
+        end
+
         cr:fill()
 
-        if dot then
-            cr:arc(w/2,w/2,bar_size/4, 0, 2*math.pi)
+        if args.dot then
+            cr:arc(w2/2, args.center and h/2 or w2/2 ,bar_size/4, 0, 2*math.pi)
             cr:set_source_rgb(1,1,1)
             cr:fill_preserve()
             cr:set_source_rgba(0,0,0,0.5)
@@ -98,7 +151,7 @@ local function gen_vertical_line(dot)
         end
     end
 
-    function w:fit(ctx, w, h)
+    function w:fit()
         return bar_size, bar_size
     end
 
@@ -107,10 +160,9 @@ end
 
 local function gen_taglist_layout_proxy(tags, w2, name)
     local l = wibox.layout.fixed.horizontal()
+    l.fit = fixed_fit2
 
     local layout = l.layout
-
-    local pos = {}
 
     l.layout = function(self,context, width, height)
         local ret = layout(self,context, width, height)
@@ -142,6 +194,7 @@ local function gen_fake_taglist_wibar(tags, w2)
         {
             {
                 forced_height = bar_size,
+                forced_width  = bar_size,
                 image         = beautiful.awesome_icon,
                 widget        = wibox.widget.imagebox,
             },
@@ -153,31 +206,35 @@ local function gen_fake_taglist_wibar(tags, w2)
                 filter        = taglist.filter.all,
                 source        = function() return tags end,
             },
+            fit = fixed_fit2,
             layout = wibox.layout.fixed.horizontal,
         },
         bg     = beautiful.bg_normal,
         widget = wibox.container.background
     }
 
+    -- Make sure it nevers goes unbounded by accident.
+    local w3, h3 = w:fit({dpi=96}, 9999, 9999)
+    assert(w3 < 5000 and h3 < 5000)
+
     return w
 end
 
 local function gen_cls(c,results)
-    local ret = setmetatable({},{__index = function(t,i)
+    local ret = setmetatable({},{__index = function(_, i)
             local ret2 = c[i]
             if type(ret2) == "function" then
                 if i == "geometry" then
-                    return function(self, val)
+                    return function(_, val)
                         if val then
                             c:geometry(gtable.crush(c:geometry(), val))
                             -- Make a copy as the original will be changed
                             results[c] = gtable.clone(c:geometry())
-                            return geom
                         end
                         return c:geometry()
                     end
                 else
-                    return function(self,...) return ret2(c,...) end
+                    return function(_,...) return ret2(c,...) end
                 end
             end
             return ret2
@@ -187,9 +244,9 @@ end
 
 local function fake_arrange(tag)
     local cls,results,flt = {},setmetatable({},{__mode="k"}),{}
-    local s, l = tag.screen, tag.layout
+    local _, l = tag.screen, tag.layout
     local focus, focus_wrap = capi.client.focus, nil
-    for k,c in ipairs (tag:clients()) do
+    for _ ,c in ipairs (tag:clients()) do
         -- Handle floating client separately
         if not c.minimized then
             local floating = c.floating
@@ -250,7 +307,7 @@ local function gen_fake_clients(tag, args)
 
     local show_name = args.display_client_name or args.display_label
 
-    function pager:draw(ctx, cr, w, h)
+    function pager:draw(_, cr, w, h)
         if not tag.client_geo then return end
 
         for _, geom in ipairs(tag.client_geo) do
@@ -298,7 +355,7 @@ end
 
 local function wrap_timeline(w, dot)
     return wibox.widget {
-            gen_vertical_line(dot),
+            gen_vertical_line { dot = dot or false},
             {
                 w,
                 top     = dot and 5 or 0,
@@ -306,33 +363,46 @@ local function wrap_timeline(w, dot)
                 left    = 0,
                 widget  = wibox.container.margin
             },
+            fit    = fixed_fit2,
             layout = wibox.layout.fixed.horizontal
         }
 end
 
-local function gen_screen_widget(s)
-    local ret = wibox.widget.base.make_widget()
-
-    function ret:fit()
-        -- Use a factor of 10.
-        return s.geometry.width/10, x.geometry.height/10
-    end
-
-    function ret:draw(ctx, cr, w, h)
-        -- Draw the screen outline
-        cr:set_source(color("#00000044"))
-        cr:set_line_width(1.5)
-        cr:set_dash({10,4},1)
-        cr:rectangle(s.geometry.x+0.75,s.geometry.y+0.75,s.geometry.width-1.5,s.geometry.height-1.5)
-        cr:stroke()
-
-        -- Draw the workarea outline
-        cr:set_source(color("#00000033"))
-        cr:rectangle(s.workarea.x,s.workarea.y,s.workarea.width,s.workarea.height)
-        cr:stroke()
-    end
-
-    return ret
+local function gen_label(text)
+    return wibox.widget {
+            gen_vertical_line {
+                dot    = true,
+                begin  = text == "Begin",
+                finish = text == "End",
+                center = true,
+            },
+        {
+            {
+                {
+                    {
+                        markup       = "<span size='smaller'><b>"..text.."</b> </span>",
+                        forced_width = 50,
+                        widget       = wibox.widget.textbox
+                    },
+                    top    = 2,
+                    bottom = 2,
+                    right  = 5,
+                    left   = 10,
+                    widget = wibox.container.margin
+                },
+                shape        = shape.rectangular_tag,
+                border_width = 2,
+                border_color = beautiful.border_color,
+                bg           = beautiful.bg_normal,
+                widget       = wibox.container.background
+            },
+            top    = 10,
+            bottom = 10,
+            widget = wibox.container.margin
+        },
+        fit    = fixed_fit2,
+        layout = wibox.layout.fixed.horizontal
+    }
 end
 
 local function draw_info(s, cr, factor)
@@ -377,9 +447,9 @@ local function draw_info(s, cr, factor)
         local _, logical = playout:get_pixel_extents()
         col1_width = math.max(col1_width, logical.width+10)
 
-        local attr, parsed = Pango.parse_markup(values[k], -1, 0)
+        attr, parsed = Pango.parse_markup(values[k], -1, 0)
         playout.attributes, playout.text = attr, parsed
-        local _, logical = playout:get_pixel_extents()
+        _, logical = playout:get_pixel_extents()
         col2_width = math.max(col2_width, logical.width+10)
 
         height = math.max(height, logical.height)
@@ -392,14 +462,13 @@ local function draw_info(s, cr, factor)
     for k, label in ipairs(rows) do
         local attr, parsed = Pango.parse_markup(label..":", -1, 0)
         playout.attributes, playout.text = attr, parsed
-        local _, logical = playout:get_pixel_extents()
+        playout:get_pixel_extents()
         cr:move_to(dx, dy)
         cr:show_layout(playout)
 
-        local attr, parsed = Pango.parse_markup(values[k], -1, 0)
+        attr, parsed = Pango.parse_markup(values[k], -1, 0)
         playout.attributes, playout.text = attr, parsed
         local _, logical = playout:get_pixel_extents()
-        col2_width = math.max(col1_width, logical.width+10)
         cr:move_to( dx+col1_width+5, dy)
         cr:show_layout(playout)
 
@@ -410,7 +479,8 @@ end
 local function gen_ruler(h_or_v, factor, margins)
     local ret = wibox.widget.base.make_widget()
 
-    function ret:fit(ctx, w, h)
+    function ret:fit()
+        local w, h
         local rw, rh = root.size()
         rw, rh = rw*factor, rh*factor
 
@@ -425,7 +495,7 @@ local function gen_ruler(h_or_v, factor, margins)
         return w, h
     end
 
-    function ret:draw(ctx, cr, w, h)
+    function ret:draw(_, cr, w, h)
         cr:set_source(color("#77000033"))
         cr:set_line_width(2)
         cr:set_dash({1,1},1)
@@ -465,26 +535,38 @@ local function gen_screens(l, screens, args)
         table.insert(sreen_copies, scr_cpy)
     end
 
-    function ret:fit(ctx, w, h)
-        w = margins.left+(x0+rw)/5 + 5 + margins.right
-        h = margins.top +(y0+rh)/5 + 5 + margins.bottom
+    function ret:fit()
+        local w = margins.left+(x0+rw)/screen_scale_factor + 5 + margins.right
+        local h = margins.top +(y0+rh)/screen_scale_factor + 5 + margins.bottom
         return w, h
     end
 
     -- Add the rulers.
     for _, s in ipairs(sreen_copies) do
-        ret:add_at(gen_ruler("vertical"  , 1/5, margins), {x=margins.left+s.x/5, y =margins.top/2})
-        ret:add_at(gen_ruler("vertical"  , 1/5, margins), {x=margins.left+s.x/5+s.width/5, y =margins.top/2})
-        ret:add_at(gen_ruler("horizontal", 1/5, margins), {y=margins.top+s.y/5, x =margins.left/2})
-        ret:add_at(gen_ruler("horizontal", 1/5, margins), {y=margins.top+s.y/5+s.height/5, x =margins.left/2})
+        ret:add_at(
+            gen_ruler("vertical"  , 1/screen_scale_factor, margins),
+            {x=margins.left+s.x/screen_scale_factor, y =margins.top/2}
+        )
+        ret:add_at(
+            gen_ruler("vertical"  , 1/screen_scale_factor, margins),
+            {x=margins.left+s.x/screen_scale_factor+s.width/screen_scale_factor, y =margins.top/2}
+        )
+        ret:add_at(
+            gen_ruler("horizontal", 1/screen_scale_factor, margins),
+            {y=margins.top+s.y/screen_scale_factor, x =margins.left/2}
+        )
+        ret:add_at(
+            gen_ruler("horizontal", 1/screen_scale_factor, margins),
+            {y=margins.top+s.y/screen_scale_factor+s.height/screen_scale_factor, x =margins.left/2}
+        )
     end
 
     -- Print an outline for the screens
     for k, s in ipairs(sreen_copies) do
         s.widget = wibox.widget.base.make_widget()
 
-        local wb = gen_fake_taglist_wibar(screens[k].tags, w2)
-        wb.forced_width = s.width/5
+        local wb = gen_fake_taglist_wibar(screens[k].tags)
+        wb.forced_width = s.width/screen_scale_factor
 
         -- The clients have an absolute geometry, transform to relative.
         if screens[k].tags[1] then
@@ -501,14 +583,14 @@ local function gen_screens(l, screens, args)
             clients_w,
             nil,
             layout       = wibox.layout.align.vertical,
-            forced_width = s.width/5,
+            forced_width = s.width/screen_scale_factor,
         }
 
-        function s.widget:fit(ctx, w, h)
-            return s.width/5, s.height/5
+        function s.widget:fit()
+            return s.width/screen_scale_factor, s.height/screen_scale_factor
         end
 
-        function s.widget:draw(ctx, cr, w, h)
+        function s.widget:draw(_, cr, w, h)
             cr:set_source(color("#00000044"))
             cr:set_line_width(1.5)
             cr:set_dash({10,4},1)
@@ -516,15 +598,15 @@ local function gen_screens(l, screens, args)
             cr:stroke()
 
             if args.display_label ~= false then
-                draw_info(s, cr, 1/5)
+                draw_info(s, cr, 1/screen_scale_factor)
             end
         end
 
-        function s.widget:after_draw_children(ctx, cr, w, h)
+        function s.widget:after_draw_children(_, cr)
             if args.display_mouse and mouse.screen.index == s.index then
                 local rel_x = mouse.coords().x - s.x
                 local rel_y = mouse.coords().y - s.y
-                draw_mouse(cr, rel_x/5+5, rel_y/5+5)
+                draw_mouse(cr, rel_x/screen_scale_factor+5, rel_y/screen_scale_factor+5)
             end
         end
 
@@ -534,7 +616,7 @@ local function gen_screens(l, screens, args)
             ) }
         end
 
-        ret:add_at(s.widget, {x=margins.left+s.x/5, y=margins.top+s.y/5})
+        ret:add_at(s.widget, {x=margins.left+s.x/screen_scale_factor, y=margins.top+s.y/screen_scale_factor})
     end
 
     l:add(wrap_timeline(wibox.widget {
@@ -557,12 +639,16 @@ local function gen_noscreen(l, tags, args)
     local wrapped_wibar = wibox.widget {
         gen_fake_taglist_wibar(tags, w2),
         fill_space = false,
+        fit = fixed_fit2,
         layout = wibox.layout.fixed.horizontal
     }
 
     l:add(wrap_timeline(wrapped_wibar, false))
 
     if #capi.client.get() > 0 or args.show_empty then
+        local w3, h3 = w2:fit({dpi=96}, 9999, 9999)
+        assert(w3 < 5000 and h3 < 5000)
+
         l:add(wrap_timeline(w2, false))
         l:add(wrap_timeline(gen_fake_pager_widget(tags, w2, args), false))
     end
@@ -570,6 +656,9 @@ end
 
 local function gen_timeline(args)
     local l = wibox.layout.fixed.vertical()
+    l.fit = fixed_fit2
+
+    l:add(gen_label("Begin"))
 
     for _, event in ipairs(history) do
         local ret = event.callback()
@@ -585,7 +674,65 @@ local function gen_timeline(args)
         end
     end
 
+    -- Spacing.
+    l:add(wrap_timeline( wibox.widget {
+        draw   = function() end,
+        fit    = function() return 1, 10 end,
+        widget = wibox.widget.base.make_widget()
+    }))
+
+    l:add(gen_label("End"))
+
     return l
+end
+
+local function wrap_with_arrows(widget)
+    local w = widget:fit({dpi=96}, 9999,9999)
+
+    local arrows = wibox.widget.base.make_widget()
+
+    function arrows:fit()
+        return w, 10
+    end
+
+    function arrows:draw(_, cr, w2, h)
+
+        cr:set_line_width(1)
+        cr:set_source_rgba(1, 0, 0, 0.3)
+
+        w2 = math.min(640, w2)
+
+        local x = (w2 % 24) / 2
+
+        while x + 15 < w2 do
+            cr:move_to(x+2  , 0  )
+            cr:line_to(x+10 , h-1)
+            cr:line_to(x+20 , 0  )
+            cr:stroke()
+            x = x + 24
+        end
+    end
+
+    assert(w < 5000)
+
+    return wibox.widget {
+        widget,
+        {
+            draw   = function() end,
+            fit    = function() return 1, 10 end,
+            widget = wibox.widget.base.make_widget()
+        },
+        {
+            markup      = "<span color='#ff000055'>Code for this sequence</span>",
+            align       = "center",
+            foced_width = w,
+            widget      = wibox.widget.textbox,
+        },
+        arrows,
+        forced_width = w,
+        fit          = fixed_fit2,
+        layout       = wibox.layout.fixed.vertical
+    }
 end
 
 function module.display_tags()
@@ -630,6 +777,11 @@ function module.execute(args)
     require("gears.timer").run_delayed_calls_now()
     require("gears.timer").run_delayed_calls_now()
     require("gears.timer").run_delayed_calls_now()
+
+    if (not args) or args.show_code_pointer ~= false then
+        widget = wrap_with_arrows(widget)
+    end
+
     local w, h = widget:fit({dpi=96}, 9999,9999)
     wibox.widget.draw_to_svg_file(widget, image_path..".svg", w, h)
 end

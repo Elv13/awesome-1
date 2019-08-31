@@ -31,4 +31,4 @@ end) --DOC_HIDE
 
 module.display_tags() --DOC_HIDE
 
-module.execute() --DOC_HIDE
+module.execute{show_code_pointer = true} --DOC_HIDE

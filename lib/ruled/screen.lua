@@ -313,8 +313,6 @@ function module._apply(viewport, args)
         geo[p] = props[p] or viewport.geometry[p]
     end
 
-    print("\n\nIN APPLY", geo.x, geo.y, geo.width, geo.height, props.ignore)
-
     local s = capi.screen.fake_add(
         geo.x,
         geo.y,

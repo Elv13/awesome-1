@@ -163,6 +163,7 @@ local function update_screen_viewport(s)
         for _, a in ipairs(ascreen._viewports) do
             local int = grect.get_intersection(a.geometry, s.geometry)
 
+
             if int.width*int.height > i_size then
                 big_a, i_size = a, int.width*int.height
             end
@@ -182,7 +183,6 @@ local function update_screen_viewport(s)
 end
 
 function module.create_screen_handler(viewport, args)
-    print("\n\nIN CREATE SCREEN HANDLER")
     local geo = viewport.geometry
 
     -- Let the rules create the screen.
@@ -345,8 +345,6 @@ capi.screen.connect_signal("property::_viewports", function(a)
     assert(#a > 0)
 
     local _, added, removed = update_viewports(true)
-
-    print("\n\nGOT VIEWPORTS", #added, #removed)
 
     local resized = {}
 

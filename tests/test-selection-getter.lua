@@ -14,6 +14,7 @@ if lua_executable == nil or lua_executable == "" then
 end
 
 local header = [[
+pcall(require, "luarocks.loader")
 local lgi = require("lgi")
 local Gdk = lgi.Gdk
 local Gtk = lgi.Gtk

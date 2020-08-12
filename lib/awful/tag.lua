@@ -676,6 +676,11 @@ end
 --
 -- @DOC_screen_mwfact_EXAMPLE@
 --
+-- When multiple columns are used, the master width remains the same, but
+-- the other columns split the remaining space among them:
+--
+-- @DOC_screen_mwfact2_EXAMPLE@
+--
 -- **Signal:**
 --
 -- * *property::mwfact* (deprecated)
@@ -687,6 +692,7 @@ end
 -- @see column_count
 -- @see master_fill_policy
 -- @see gap
+-- @see awful.tag.incmwfact
 
 function tag.object.set_master_width_factor(t, mwfact)
     if mwfact >= 0 and mwfact <= 1 then
@@ -1069,6 +1075,7 @@ end
 -- @property gap
 -- @param number The value has to be greater than zero.
 -- @see gap_single_client
+-- @see awful.tag.incgap
 
 function tag.object.set_gap(t, useless_gap)
     if useless_gap >= 0 then
@@ -1131,6 +1138,7 @@ end
 --
 -- @property gap_single_client
 -- @param boolean Enable gaps for a single client
+-- @see awful.tag.incgap
 
 function tag.object.set_gap_single_client(t, gap_single_client)
     tag.setproperty(t, "gap_single_client", gap_single_client == true)
@@ -1179,11 +1187,25 @@ end
 
 --- Set size fill policy for the master client(s).
 --
+-- Some multi-column layouts can be configured so that the space is
+-- redistributed when there is not enough clients to fill all columns.
+--
 -- ** Possible values**:
 --
 -- * *expand*: Take all the space
--- * *master_width_factor*: Only take the ratio defined by the
+-- * *master\_width\_factor*: Only take the ratio defined by the
 --   `master_width_factor`
+--
+-- This is the default behavior of the `tile.left` layout (*expand*):
+--
+-- @DOC_screen_mfpol2_EXAMPLE@
+--
+-- This is what happends when set to `master_width_factor`:
+--
+-- @DOC_screen_mfpol_EXAMPLE@
+--
+-- The remaining space that would have been used for the second column is
+-- redistributed on both side.
 --
 -- **Signal:**
 --
@@ -1191,6 +1213,7 @@ end
 --
 -- @property master_fill_policy
 -- @param string "expand" or "master_width_factor"
+-- @see awful.tag.togglemfpol
 
 function tag.object.get_master_fill_policy(t)
     return tag.getproperty(t, "master_fill_policy")
@@ -1260,6 +1283,7 @@ end
 --
 -- @property master_count
 -- @param integer nmaster Only positive values are accepted
+-- @see awful.tag.incnmaster
 
 function tag.object.set_master_count(t, nmaster)
     if nmaster >= 0 then
@@ -1327,12 +1351,16 @@ end
 
 --- Set the tag icon.
 --
+-- @DOC_wibox_awidget_taglist_icon_EXAMPLE@
+--
 -- **Signal:**
 --
 -- * *property::icon*
 --
 -- @property icon
 -- @tparam path|surface icon The icon
+-- @see awful.widget.taglist
+-- @see gears.surface
 
 -- accessors are implicit.
 
@@ -1367,6 +1395,8 @@ end
 
 --- Set the number of columns.
 --
+-- @DOC_sequences_tag_column_count_EXAMPLE@
+--
 -- **Signal:**
 --
 -- * *property::ncol* (deprecated)
@@ -1374,6 +1404,7 @@ end
 --
 -- @property column_count
 -- @tparam integer ncol Has to be greater than 1
+-- @see awful.tag.incncol
 
 function tag.object.set_column_count(t, ncol)
     if ncol >= 1 then

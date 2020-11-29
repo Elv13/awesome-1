@@ -208,7 +208,7 @@
 -- This table contains the client properties that are valid when used the
 -- `sn_rules` or `prop` function argument. They are the same as in `ruled.client`.
 --
---@DOC_client_rules_index_COMMON@
+--@DOC_rules_index_COMMON@
 --
 -- @author Julien Danjou &lt;julien@danjou.info&gt;
 -- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
@@ -222,60 +222,16 @@ local capi =
     awesome = awesome,
     mouse = mouse,
     client = client,
-    root = root,
 }
 local lgi = require("lgi")
-local Gio = lgi.Gio
 local GLib = lgi.GLib
 local util   = require("awful.util")
 local gtable = require("gears.table")
 local gtimer = require("gears.timer")
-local gstring = require("gears.string")
-local gobject = require("gears.object")
 local aclient = require("awful.client")
-local protected_call = require("gears.protected_call")
+local watcher = require("gears.watcher")
 
 local spawn = {}
-
-
-local end_of_file
-do
-    -- API changes, bug fixes and lots of fun. Figure out how a EOF is signalled.
-    local input
-    if not pcall(function()
-        -- No idea when this API changed, but some versions expect a string,
-        -- others a table with some special(?) entries
-        input = Gio.DataInputStream.new(Gio.MemoryInputStream.new_from_data(""))
-    end) then
-        input = Gio.DataInputStream.new(Gio.MemoryInputStream.new_from_data({}))
-    end
-    local line, length = input:read_line()
-    if not line then
-        -- Fixed in 2016: NULL on the C side is transformed to nil in Lua
-        end_of_file = function(arg)
-            return not arg
-        end
-    elseif tostring(line) == "" and #line ~= length then
-        -- "Historic" behaviour for end-of-file:
-        -- - NULL is turned into an empty string
-        -- - The length variable is not initialized
-        -- It's highly unlikely that the uninitialized variable has value zero.
-        -- Use this hack to detect EOF.
-        end_of_file = function(arg1, arg2)
-            return #arg1 ~= arg2
-        end
-    else
-        assert(tostring(line) == "", "Cannot determine how to detect EOF")
-        -- The above uninitialized variable was fixed and thus length is
-        -- always 0 when line is NULL in C. We cannot tell apart an empty line and
-        -- EOF in this case.
-        require("gears.debug").print_warning("Cannot reliably detect EOF on an "
-                .. "GIOInputStream with this LGI version")
-        end_of_file = function(arg)
-            return tostring(arg) == ""
-        end
-    end
-end
 
 local function hash_command(cmd, rules)
     rules = rules or {}
@@ -347,6 +303,7 @@ end
 -- @treturn[1] ?string The startup notification ID, if `sn` is not false, or
 --   a `callback` is provided.
 -- @treturn[2] string Error message.
+-- @staticfct awful.spawn
 function spawn.spawn(cmd, sn_rules, callback)
     if cmd and cmd ~= "" then
         local enable_sn = (sn_rules ~= false or callback)
@@ -366,6 +323,7 @@ end
 --- Spawn a program using the shell.
 -- This calls `cmd` with `$SHELL -c` (via `awful.util.shell`).
 -- @tparam string cmd The command.
+-- @staticfct awful.spawn.with_shell
 function spawn.with_shell(cmd)
     if cmd and cmd ~= "" then
         cmd = { util.shell, "-c", cmd }
@@ -392,38 +350,11 @@ end
 --   termination.
 -- @treturn[1] Integer the PID of the forked process.
 -- @treturn[2] string Error message.
-function spawn.with_line_callback(cmd, callbacks)
-    local stdout_callback, stderr_callback, done_callback, exit_callback =
-        callbacks.stdout, callbacks.stderr, callbacks.output_done, callbacks.exit
-    local have_stdout, have_stderr = stdout_callback ~= nil, stderr_callback ~= nil
-    local pid, _, stdin, stdout, stderr = capi.awesome.spawn(cmd,
-            false, false, have_stdout, have_stderr, exit_callback)
-    if type(pid) == "string" then
-        -- Error
-        return pid
-    end
+-- @staticfct awful.spawn.with_line_callback
 
-    local done_before = false
-    local function step_done()
-        if have_stdout and have_stderr and not done_before then
-            done_before = true
-            return
-        end
-        if done_callback then
-            done_callback()
-        end
-    end
-    if have_stdout then
-        spawn.read_lines(Gio.UnixInputStream.new(stdout, true),
-                stdout_callback, step_done, true)
-    end
-    if have_stderr then
-        spawn.read_lines(Gio.UnixInputStream.new(stderr, true),
-                stderr_callback, step_done, true)
-    end
-    assert(stdin == nil)
-    return pid
-end
+-- It is still "officially" in `awful.spawn`, but since `gears.watcher`
+-- depends on it, the implementation lives there.
+spawn.with_line_callback = watcher._with_line_callback
 
 --- Asynchronously spawn a program and capture its output.
 -- (wraps `spawn.with_line_callback`).
@@ -437,43 +368,11 @@ end
 -- @treturn[1] Integer the PID of the forked process.
 -- @treturn[2] string Error message.
 -- @see spawn.with_line_callback
-function spawn.easy_async(cmd, callback)
-    local stdout = ''
-    local stderr = ''
-    local exitcode, exitreason
-    local function parse_stdout(str)
-        stdout = stdout .. str .. "\n"
-    end
-    local function parse_stderr(str)
-        stderr = stderr .. str .. "\n"
-    end
-    local function done_callback()
-        return callback(stdout, stderr, exitreason, exitcode)
-    end
-    local exit_callback_fired = false
-    local output_done_callback_fired = false
-    local function exit_callback(reason, code)
-        exitcode = code
-        exitreason = reason
-        exit_callback_fired = true
-        if output_done_callback_fired then
-            return done_callback()
-        end
-    end
-    local function output_done_callback()
-        output_done_callback_fired = true
-        if exit_callback_fired then
-            return done_callback()
-        end
-    end
-    return spawn.with_line_callback(
-        cmd, {
-        stdout=parse_stdout,
-        stderr=parse_stderr,
-        exit=exit_callback,
-        output_done=output_done_callback
-    })
-end
+-- @staticfct awful.spawn.easy_async
+
+-- It is still "officially" in `awful.spawn`, but since `gears.watcher`
+-- depends on it, the implementation lives there.
+spawn.easy_async = watcher._easy_async
 
 --- Call `spawn.easy_async` with a shell.
 -- This calls `cmd` with `$SHELL -c` (via `awful.util.shell`).
@@ -487,6 +386,7 @@ end
 -- @treturn[1] Integer the PID of the forked process.
 -- @treturn[2] string Error message.
 -- @see spawn.with_line_callback
+-- @staticfct awful.spawn.easy_async_with_shell
 function spawn.easy_async_with_shell(cmd, callback)
     return spawn.easy_async({ util.shell, "-c", cmd or "" }, callback)
 end
@@ -498,42 +398,9 @@ end
 -- @tparam[opt] function done_callback Function that is called when the
 --   operation finishes (e.g. due to end of file).
 -- @tparam[opt=false] boolean close Should the stream be closed after end-of-file?
-function spawn.read_lines(input_stream, line_callback, done_callback, close)
-    local stream = Gio.DataInputStream.new(input_stream)
-    local function done()
-        if close then
-            stream:close()
-        end
-        stream:set_buffer_size(0)
-        if done_callback then
-            protected_call(done_callback)
-        end
-    end
-    local start_read, finish_read
-    start_read = function()
-        stream:read_line_async(GLib.PRIORITY_DEFAULT, nil, finish_read)
-    end
-    finish_read = function(obj, res)
-        local line, length = obj:read_line_finish(res)
-        if type(length) ~= "number" then
-            -- Error
-            print("Error in awful.spawn.read_lines:", tostring(length))
-            done()
-        elseif end_of_file(line, length) then
-            -- End of file
-            done()
-        else
-            -- Read a line
-            -- This needs tostring() for older lgi versions which returned
-            -- "GLib.Bytes" instead of Lua strings (I guess)
-            protected_call(line_callback, tostring(line))
+-- @staticfct awful.spawn.read_lines
 
-            -- Read the next line
-            start_read()
-        end
-    end
-    start_read()
-end
+spawn.read_lines = watcher._read_lines
 
 -- When a command should only be executed once or only have a single instance,
 -- track the SNID set on them to prevent multiple execution.
@@ -550,13 +417,13 @@ local function is_running(hash, matcher)
     local status = spawn.single_instance_manager.by_uid[hash]
     if not status then return false end
 
-    if #status.instances == 0 then return false end
-
     if matcher then
         for _, c in ipairs(client.get()) do
             if matcher(c) then return true end
         end
     end
+
+    if #status.instances == 0 then return false end
 
     for _, c in ipairs(status.instances) do
         if c.valid then return true end
@@ -582,19 +449,6 @@ local function register_common(hash, rules, matcher, callback)
     spawn.single_instance_manager.by_uid[hash] = status
 
     return status
-end
-
--- Store the hashes in a persistent global list.
-local function register_root(hash)
-    local current = string.split(capi.root.get_xproperty("_spawn_cache") or "", ";")
-
-    if gtable.hasitem(current, hash) then return false end
-
-    current = current .. ";"..hash
-
-    capi.root.set_xproperty("_spawn_cache", current)
-
-    return true
 end
 
 local function run_once_common(hash, cmd, keep_pid)
@@ -663,10 +517,6 @@ end
 -- @staticfct awful.spawn.once
 function spawn.once(cmd, rules, matcher, unique_id, callback)
     local hash = unique_id or hash_command(cmd, rules)
-
-    -- Allow commands without client(s) to use this.
-    if not register_root(hash) then return end
-
     local status = register_common(hash, rules, matcher, callback)
     run_after_startup(function()
         if not status.exec and not is_running(hash, matcher) then
@@ -753,37 +603,6 @@ end
 capi.awesome.connect_signal("spawn::canceled" , spawn.on_snid_cancel   )
 capi.awesome.connect_signal("spawn::timeout"  , spawn.on_snid_cancel   )
 capi.client.connect_signal ("request::manage" , spawn.on_snid_callback )
-
--- The format is hexadecimal strings delimited by `;`.
-capi.awesome.register_xproperty("_spawn_cache", "string")
-capi.awesome.register_xproperty("_auto_start" , "boolean")
-
-gobject._setup_class_signals(spawn)
-
---- Emitted the first time Awesome is started.
---
--- This signal can be used to detect when executing some task needs to be
--- done only once. It will not be emitted when awesome is restarted. It will
--- also not be emitted if Awesome is killed, another window manager used and
--- Awesome gets started again.
---
--- Please note that there is a concept called a session manager. Many existing
--- projects, including some display manager (DM), come with one. In theory, it
--- is the session manager job to handle autostarting programs. There is no way
--- for Awesome to detect if the "autostart" program list has already been
--- executed by something else. However, it is very common for Awesome to be used
--- without a session manager. It is also useful, for the sake of self-contained
--- `rc.lua` scripts, to have this capability built-in. Use with restraint.
---
--- @signal request::autostart
-
--- Emit only once, do not emit until a new X11 session is started.
-if not root.get_xproperty("_auto_start") then
-    gtimer.delayed_call(function()
-        spawn.emit_signal("request::autostart")
-        root.set_xproperty("_auto_start", true)
-    end)
-end
 
 return setmetatable(spawn, { __call = function(_, ...) return spawn.spawn(...) end })
 -- vim: filetype=lua:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:textwidth=80

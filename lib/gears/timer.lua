@@ -63,16 +63,6 @@ local gtable = require("gears.table")
 local protected_call = require("gears.protected_call")
 local gdebug = require("gears.debug")
 
---- Timer objects. This type of object is useful when triggering events repeatedly.
--- The timer will emit the "timeout" signal every N seconds, N being the timeout
--- value. Note that a started timer will not be garbage collected. Call `:stop`
--- to enable garbage collection.
--- @tfield number timeout Interval in seconds to emit the timeout signal.
---   Can be any value, including floating point ones (e.g. 1.5 seconds).
--- @tfield boolean started Read-only boolean field indicating if the timer has been
---   started.
--- @table timer
-
 --- When the timer is started.
 -- @signal start
 
@@ -133,7 +123,9 @@ end
 -- @param boolean
 
 --- The timer timeout value.
--- **Signal:** property::timeout
+--
+-- The value is in seconds.
+--
 -- @property timeout
 -- @param number
 -- @propemits true false

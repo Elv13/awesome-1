@@ -87,6 +87,10 @@ function timer:start()
         return true
     end)
     self:emit_signal("start")
+
+    if self._private.single_shot then
+        self:connect_signal("timeout", self.stop)
+    end
 end
 
 --- Stop the timer.
@@ -103,6 +107,7 @@ function timer:stop()
     glib.source_remove(self._private.source_id)
     self._private.source_id = nil
     self:emit_signal("stop")
+    self:disconnect_signal("timeout", self.stop)
 end
 
 --- Restart the timer.
@@ -172,7 +177,10 @@ function timer.new(args)
 
     gtable.crush(ret, timer, true)
 
-    rawset(ret, "_private", { timeout = 0 })
+    rawset(ret, "_private", {
+        timeout     = 0,
+        single_shot = args.single_shot or false
+    })
 
     -- Preserve backward compatibility with Awesome 4.0-4.3 use of "data"
     -- rather then "_private".
@@ -208,9 +216,6 @@ function timer.new(args)
         ret:connect_signal("timeout", args.callback)
     end
 
-    if args.single_shot then
-        ret:connect_signal("timeout", function() ret:stop() end)
-    end
 
     return ret
 end
@@ -263,6 +268,25 @@ function timer.weak_start_new(timeout, callback)
             return cb()
         end
     end)
+end
+
+--- Trigger this timer a single time then stop.
+--
+-- @property single_shot
+-- @tparam[opt=false] boolean single_shot
+
+function timer:set_single_shot(value)
+    if self._private.single_shot == value then return end
+
+    self._private.single_shot = value
+
+    if self._private.single_shot then
+        ret:connect_signal("timeout", ret.stop)
+    else
+        ret:disconnect_signal("timeout", ret.stop)
+    end
+
+    self:emit_signal("property::single_shot", value)
 end
 
 local delayed_calls = {}

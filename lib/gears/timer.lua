@@ -122,6 +122,19 @@ local function timeout_common(self)
     return true
 end
 
+local function resume_timers()
+    for _, t in ipairs(all_timers) do
+        local prev_wakeup = t._private.last_wakeup or -1
+
+        local past_due = prev_wakeup + t._private.timeout < awesome.mainloop_timestamp
+
+        if past_due and t._private.wake_up then
+            t._private.pending_reset = true
+            timeout_common(t)
+        end
+    end
+end
+
 --- Start the timer.
 -- @method start
 -- @emits start
@@ -183,6 +196,29 @@ end
 -- @property started
 -- @param boolean
 
+--- Emit "timeout" if the timer is past due when resuming.
+--
+-- If the computer goes to sleep, temporarely freezes or hibernates, it
+-- is possible one or many `timeout` signals wont be sent. If this is
+-- detected and this property is set to `true`, the `timeout` signal
+-- will be emitted. Please note that AwesomeWM down not actively track
+-- when the system goes to sleep for portability and resource usage
+-- reasons. This property is implemented in a best-effort way.
+--
+-- @property wake_up
+-- @tparam[opt=false] boolean wake_up
+-- @propemits true false
+
+function timer:set_wake_up(value)
+    if value == self._private.wake_up then return end
+
+    self._private.wake_up = value
+
+    update_wakeup()
+
+    self:emit_signal("property::wake_up", value)
+end
+
 --- The timer timeout value.
 --
 -- The value is in seconds.
@@ -219,6 +255,7 @@ end
 -- @tparam number args.timeout Timeout in seconds (e.g. 1.5).
 -- @tparam[opt=false] boolean args.autostart Automatically start the timer.
 -- @tparam[opt=false] boolean args.call_now Call the callback at timer creation.
+-- @tparam[opt=false] boolean args.wake_up Track system sleep.
 -- @tparam[opt=nil] function args.callback Callback function to connect to the
 --  "timeout" signal.
 -- @tparam[opt=false] boolean args.single_shot Run only once then stop.
@@ -376,6 +413,7 @@ function timer.delayed_call(callback, ...)
 end
 
 capi.awesome.connect_signal("refresh", timer.run_delayed_calls_now)
+capi.awesome.connect_signal("_resumed", resume_timers)
 
 function timer.mt.__call(_, ...)
     return timer.new(...)

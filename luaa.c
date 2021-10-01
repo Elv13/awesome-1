@@ -714,6 +714,16 @@ static int luaA_get_active_modifiers(lua_State *L)
  * @tfield string icon_path
  */
 
+/**
+ * A low-precision timestampt of when the last even loop iteration
+ * was started.
+ *
+ * It is a floating point number with the number of seconds since
+ * 1970.
+ *
+ * @tfield number mainloop_timestamp
+ */
+
 static int
 luaA_awesome_index(lua_State *L)
 {
@@ -758,6 +768,16 @@ luaA_awesome_index(lua_State *L)
         return 1;
     }
 
+    /* Low precision way to get the time */
+    if(A_STREQ(buf, "mainloop_timestamp"))
+    {
+        const double now = globalconf.current_mainloop_time.tv_sec
+            + ((double) globalconf.current_mainloop_time.tv_usec)*0.000001;
+
+        lua_pushnumber(L, now);
+        return 1;
+    }
+
     if(A_STREQ(buf, "_active_modifiers"))
     {
         luaA_get_active_modifiers(L);
@@ -798,6 +818,12 @@ luaA_awesome_index(lua_State *L)
     if(A_STREQ(buf, "icon_path"))
     {
         lua_pushliteral(L, AWESOME_ICON_PATH);
+        return 1;
+    }
+
+    if(A_STREQ(buf, "_suspend_threshold"))
+    {
+        lua_pushnumber(L, globalconf.suspend_threshold);
         return 1;
     }
 
@@ -1340,6 +1366,14 @@ luaA_default_index(lua_State *L)
 int
 luaA_default_newindex(lua_State *L)
 {
+    const char *buf = luaL_checkstring(L, 2);
+
+    if(A_STREQ(buf, "_suspend_threshold"))
+    {
+        globalconf.suspend_threshold = luaL_checknumber(L, 3);
+        return 0;
+    }
+
     return luaA_class_newindex_miss_property(L, NULL);
 }
 

@@ -24,6 +24,7 @@
 
 #define SN_API_NOT_YET_FROZEN
 #include <libsn/sn.h>
+#include <sys/time.h>
 
 #include <glib.h>
 
@@ -230,6 +231,10 @@ typedef struct
     int exit_code;
     /** The Global API level */
     int api_level;
+    /** Timespan before the "resumed" signal is used */
+    double suspend_threshold;
+    /** Last time the main loop has been executed */
+    struct timeval current_mainloop_time;
 } awesome_t;
 
 extern awesome_t globalconf;

@@ -441,10 +441,13 @@ static gint
 a_glib_poll(GPollFD *ufds, guint nfsd, gint timeout)
 {
     guint res;
-    struct timeval now, length_time;
+    struct timeval length_time;
     float length;
     int saved_errno;
     lua_State *L = globalconf_get_lua_State();
+
+    /* Check how long this main loop iteration took */
+    gettimeofday(&globalconf.current_mainloop_time, NULL);
 
     /* Do all deferred work now */
     awesome_refresh();
@@ -462,9 +465,7 @@ a_glib_poll(GPollFD *ufds, guint nfsd, gint timeout)
     if (globalconf.pending_event != NULL)
         timeout = 0;
 
-    /* Check how long this main loop iteration took */
-    gettimeofday(&now, NULL);
-    timersub(&now, &last_wakeup, &length_time);
+    timersub(&globalconf.current_mainloop_time, &last_wakeup, &length_time);
     length = length_time.tv_sec + length_time.tv_usec * 1.0f / 1e6;
     if (length > main_loop_iteration_limit) {
         warn("Last main loop iteration took %.6f seconds! Increasing limit for "
@@ -476,6 +477,29 @@ a_glib_poll(GPollFD *ufds, guint nfsd, gint timeout)
     res = g_poll(ufds, nfsd, timeout);
     saved_errno = errno;
     gettimeofday(&last_wakeup, NULL);
+
+    const int elapsed = last_wakeup.tv_sec - globalconf.current_mainloop_time.tv_sec;
+    const int threshold = globalconf.suspend_threshold;
+
+    /* This code helps `gears.timer` to handle suspending/hibernating laptops
+     * better. Ideally, the threshold needs to be ~1.5 larger than the fastest
+     * timer. 1.0f is because short threshold will actually increase latency
+     * whne `align` is used. */
+    if (threshold > 1.0f && elapsed >= threshold + length) {
+
+        lua_pushnumber(L, globalconf.current_mainloop_time.tv_sec
+            + ((double) globalconf.current_mainloop_time.tv_usec)*0.000001);
+        lua_pushnumber(L, last_wakeup.tv_sec + ((double) last_wakeup.tv_usec)*0.000001);
+
+        globalconf.current_mainloop_time.tv_sec = last_wakeup.tv_sec;
+        globalconf.current_mainloop_time.tv_usec = last_wakeup.tv_usec;
+
+        signal_object_emit(L, &global_signals, "_resumed", 2);
+    }
+
+    globalconf.current_mainloop_time.tv_sec = last_wakeup.tv_sec;
+    globalconf.current_mainloop_time.tv_usec = last_wakeup.tv_usec;
+
     a_xcb_check();
     errno = saved_errno;
 
@@ -643,6 +667,9 @@ main(int argc, char **argv)
         }
     }
 
+    /* Set the initial time */
+    gettimeofday(&globalconf.current_mainloop_time, NULL);
+
     /* Parse `rc.lua` to see if it has an AwesomeWM modeline */
     if (!(default_init_flags & INIT_FLAG_FORCE_CMD_ARGS))
         options_init_config(&xdg, awesome_argv[0], confpath, &default_init_flags, &searchpath);
@@ -674,6 +701,9 @@ main(int argc, char **argv)
     sa.sa_handler = signal_child;
     sa.sa_flags = SA_NOCLDSTOP | SA_RESTART;
     sigaction(SIGCHLD, &sa, 0);
+
+    /* Initialize the number of seconds before the "resumed" signal is sent */
+    globalconf.suspend_threshold = 0;
 
     /* We have no clue where the input focus is right now */
     globalconf.focus.need_update = true;

@@ -72,7 +72,55 @@ local gdebug = require("gears.debug")
 --- When the timer had a timeout event.
 -- @signal timeout
 
-local timer = { mt = {} }
+local timer, all_timers = { mt = {} }, setmetatable({}, {__mode = "v"})
+
+--- Update AwesomeWM internal event loop stalling detection.
+--
+-- If the system goes to sleep or misses extensive time, this
+-- private API ensures the next time an event loop is executed,
+-- the `resumed` signal will be sent from `capi.awesome`.
+local function update_wakeup()
+    local least = math.huge
+
+    for _, t in ipairs(all_timers) do
+        if t._private.wake_up then
+            least = math.min(least, t._private.timeout * 1.5)
+        end
+    end
+
+    capi.awesome._suspend_threshold = least == math.huge and 0 or least
+end
+
+local function quiet_stop(self)
+    glib.source_remove(self._private.source_id)
+    self._private.source_id = nil
+    self._private.last_wakeup = capi.awesome.mainloop_timestamp
+    self._private.pending_reset = false
+end
+
+local function quiet_start(self)
+    self._private.last_wakeup = capi.awesome.mainloop_timestamp
+
+    self._private.source_id = glib.timeout_add(
+        glib.PRIORITY_DEFAULT,
+        self._private.timeout * 1000,
+        self._private.timeout_function
+    )
+end
+
+local function timeout_common(self)
+    self._private.last_wakeup = capi.awesome.mainloop_timestamp
+
+    protected_call(self.emit_signal, self, "timeout")
+
+    if self.pending_reset then
+        self._private.pending_reset = false
+        quiet_stop(self)
+        quiet_start(self)
+    end
+
+    return true
+end
 
 --- Start the timer.
 -- @method start
@@ -82,14 +130,17 @@ function timer:start()
         gdebug.print_error(traceback("timer already started"))
         return
     end
-    self._private.source_id = glib.timeout_add(glib.PRIORITY_DEFAULT, self._private.timeout * 1000, function()
-        protected_call(self.emit_signal, self, "timeout")
-        return true
-    end)
+
+    quiet_start(self)
+
     self:emit_signal("start")
 
     if self._private.single_shot then
         self:connect_signal("timeout", self.stop)
+    end
+
+    if self._private.wake_up then
+        update_wakeup()
     end
 end
 
@@ -104,10 +155,15 @@ function timer:stop()
         gdebug.print_error(traceback("timer not started"))
         return
     end
-    glib.source_remove(self._private.source_id)
-    self._private.source_id = nil
+
+    quiet_stop(self)
+
     self:emit_signal("stop")
     self:disconnect_signal("timeout", self.stop)
+
+    if self._private.wake_up then
+        update_wakeup()
+    end
 end
 
 --- Restart the timer.
@@ -179,8 +235,14 @@ function timer.new(args)
 
     rawset(ret, "_private", {
         timeout     = 0,
-        single_shot = args.single_shot or false
+        single_shot = args.single_shot or false,
+        last_wakeup = capi.awesome.mainloop_timestamp,
+        wake_up     = args.wake_up or false
     })
+
+    ret._private.timeout_function = function()
+        return timeout_common(ret)
+    end
 
     -- Preserve backward compatibility with Awesome 4.0-4.3 use of "data"
     -- rather then "_private".
@@ -200,6 +262,8 @@ function timer.new(args)
             ret._private[key] = value
         end
     }))
+
+    table.insert(all_timers, ret)
 
     for k, v in pairs(args) do
         ret[k] = v

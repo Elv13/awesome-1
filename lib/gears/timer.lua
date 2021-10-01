@@ -281,9 +281,9 @@ function timer:set_single_shot(value)
     self._private.single_shot = value
 
     if self._private.single_shot then
-        ret:connect_signal("timeout", ret.stop)
+        self:connect_signal("timeout", self.stop)
     else
-        ret:disconnect_signal("timeout", ret.stop)
+        self:disconnect_signal("timeout", self.stop)
     end
 
     self:emit_signal("property::single_shot", value)

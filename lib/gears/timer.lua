@@ -106,8 +106,6 @@ local function quiet_start(self)
         self._private.timeout * 1000,
         self._private.timeout_function
     )
-
-    self._private.started_ts = capi.awesome.mainloop_timestamp
 end
 
 local function timeout_common(self)
@@ -147,6 +145,8 @@ function timer:start()
     end
 
     quiet_start(self)
+
+    self._private.started_ts = capi.awesome.mainloop_timestamp
 
     self:emit_signal("start")
 

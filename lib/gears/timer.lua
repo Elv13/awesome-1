@@ -106,6 +106,8 @@ local function quiet_start(self)
         self._private.timeout * 1000,
         self._private.timeout_function
     )
+
+    self._private.started_ts = capi.awesome.mainloop_timestamp
 end
 
 local function timeout_common(self)
@@ -248,6 +250,32 @@ end
 function timer:set_timeout(value)
     self._private.timeout = tonumber(value)
     self:emit_signal("property::timeout", value)
+end
+
+--- Nunber of seconds since the timer started.
+--
+-- This property is read-only.
+--
+-- @property elapsed
+-- @tparam number elapsed
+
+function timer:get_elapsed()
+    if not self.started then return 0 end
+
+    return capi.awesome.mainloop_timestamp - self._private.started_ts
+end
+
+--- Number of seconds until the next timeout.
+--
+-- @property remaining
+-- @tparam number remaining
+
+function timer:get_remaining()
+    if not self.started then return 0 end
+
+    local next = self._private.last_wakeup + self._private.timeout
+
+    return next - capi.awesome.mainloop_timestamp
 end
 
 --- Create a new timer object.

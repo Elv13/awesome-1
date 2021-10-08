@@ -74,6 +74,32 @@ local gdebug = require("gears.debug")
 
 local timer, all_timers = { mt = {} }, setmetatable({}, {__mode = "v"})
 
+-- Get how many millisecond the timer should wait upon for the next
+-- iteration. It also detect when the timer needs to be re-aligned.
+local function get_next_interval(self, now, skip)
+    if type(self._private.timeout) == "number" then
+        return self._private.timeout * 1000
+    else
+        now = now or capi.awesome.mainloop_timestamp
+
+        local next = timer._get_schedule_ts_offset(
+            now,
+            self._private.timeout
+        )
+
+        -- Make sure it settle down on an alignment "eventualy".
+        -- The timers are never very accurate, let leave a 500ms "room". Otherwise,
+        -- the timer will be recomputed every single time for no reason.
+        if (not skip) and math.abs(next * 1000 - get_next_interval(self, now + next + 0.1, true)) > 500 then
+            self._private.pending_reset = get_next_interval(self, now + next + 0.001, true)
+        end
+
+        -- The 1 is because we added a millisecond after the next timeout
+        -- and need to substrct it here.
+        return math.floor(next * 1000 + (skip and 1 or 0))
+    end
+end
+
 --- Update AwesomeWM internal event loop stalling detection.
 --
 -- If the system goes to sleep or misses extensive time, this
@@ -84,7 +110,7 @@ local function update_wakeup()
 
     for _, t in ipairs(all_timers) do
         if t._private.wake_up then
-            least = math.min(least, t._private.timeout * 1.5)
+            least = math.min(least, get_next_interval(t) * 1.5)
         end
     end
 
@@ -98,12 +124,14 @@ local function quiet_stop(self)
     self._private.pending_reset = false
 end
 
-local function quiet_start(self)
+local function quiet_start(self, next)
     self._private.last_wakeup = capi.awesome.mainloop_timestamp
+
+    next = next or get_next_interval(self)
 
     self._private.source_id = glib.timeout_add(
         glib.PRIORITY_DEFAULT,
-        self._private.timeout * 1000,
+        next,
         self._private.timeout_function
     )
 end
@@ -113,10 +141,12 @@ local function timeout_common(self)
 
     protected_call(self.emit_signal, self, "timeout")
 
-    if self.pending_reset then
+    local pending = self._private.pending_reset
+
+    if self._private.pending_reset then
         self._private.pending_reset = false
         quiet_stop(self)
-        quiet_start(self)
+        quiet_start(self, type(pending) == "number" and pending or nil)
     end
 
     return true
@@ -126,13 +156,52 @@ local function resume_timers()
     for _, t in ipairs(all_timers) do
         local prev_wakeup = t._private.last_wakeup or -1
 
-        local past_due = prev_wakeup + t._private.timeout < awesome.mainloop_timestamp
+        local past_due = prev_wakeup + get_next_interval(t) < awesome.mainloop_timestamp
 
         if past_due and t._private.wake_up then
             t._private.pending_reset = true
             timeout_common(t)
         end
     end
+end
+
+function timer._get_schedule_ts_offset(now, desc)
+    -- GTimeVal is a struct, it has no constructor.
+    local tv = glib.TimeVal()
+    tv.tv_sec  = math.floor(now)
+    tv.tv_usec = math.ceil(now % 1*1000)
+
+    --local date_now = glib.DateTime.new_from_unix_local(math.ceil(now))
+    local date_now = glib.DateTime.new_from_timeval_local(tv)
+
+    -- Turn all the optional fields into a proper date.
+    local date_next = glib.DateTime.new(
+        date_now:get_timezone(),
+        desc.year   or date_now:get_year(),
+        desc.month  or date_now:get_month(),
+        desc.day    or date_now:get_day_of_month(),
+        desc.hour   or date_now:get_hour(),
+        desc.minute or date_now:get_minute(),
+        desc.second or date_now:get_second()
+    )
+
+    -- Attemot to find the next iteration if the ts is past due.
+    local delta =  date_next:to_unix() - now
+
+    if delta < 0 then
+        if delta >= -60 and not desc.minute then
+            date_next = date_next:add_minutes(1)
+        elseif delta >= -3600 and not desc.hour then
+            date_next = date_next:add_hours(1)
+        elseif delta >= -3600*24 and not desc.day then
+            date_next = date_next:add_days(1)
+        elseif delta >= -3600*24*30 and not desc.day then
+            date_next = date_next:add_months(1)
+        end
+    end
+
+    -- Get the offset from now
+    return date_next:to_unix() - now
 end
 
 --- Start the timer.
@@ -248,7 +317,11 @@ function timer:set_started(value)
 end
 
 function timer:set_timeout(value)
-    self._private.timeout = tonumber(value)
+    if type(value) == "table" then
+        self._private.timeout = value
+    else
+        self._private.timeout = tonumber(value)
+    end
     self:emit_signal("property::timeout", value)
 end
 
@@ -273,7 +346,7 @@ end
 function timer:get_remaining()
     if not self.started then return 0 end
 
-    local next = self._private.last_wakeup + self._private.timeout
+    local next = get_next_interval(self)
 
     return next - capi.awesome.mainloop_timestamp
 end
@@ -344,7 +417,6 @@ function timer.new(args)
         end
         ret:connect_signal("timeout", args.callback)
     end
-
 
     return ret
 end

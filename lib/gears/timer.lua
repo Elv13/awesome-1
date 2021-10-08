@@ -263,6 +263,18 @@ function timer:again()
     self:start()
 end
 
+--- Re-align the timer.
+--
+-- When the `timeout` property is a date/time rather than a number
+-- of milliseconds, it is possible the time will shift. This method
+-- will reset the timer delay.
+--
+-- @method realign
+function timer:realign()
+    quiet_stop(self)
+    quiet_start(self, get_next_interval(self))
+end
+
 --- The timer is started.
 -- @property started
 -- @param boolean

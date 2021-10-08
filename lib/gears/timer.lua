@@ -275,6 +275,36 @@ function timer:realign()
     quiet_start(self, get_next_interval(self))
 end
 
+--- Snooze (mute) the timer for a number of seconds.
+--
+-- This will not emit `timeout` before the delay.
+--
+-- @method snooze
+-- @tparam number delay The delay (in seconds).
+-- @see delay
+function timer:snoonze(delay)
+    if not self.started then return end
+
+    quiet_stop(self)
+    quiet_start(self, delay * 1000)
+end
+
+--- Add a delay before the next timeout.
+--
+-- This adds a delay to the remaining number of seconds.
+--
+-- @method delay
+-- @tparam number delay The delay (in seconds).
+-- @see snooze
+function timer:delay(delay)
+    if not self.started then return end
+
+    local rem = self.remaining
+
+    quiet_stop(self)
+    quiet_start(self, (rem * 1000) + (delay * 1000))
+end
+
 --- The timer is started.
 -- @property started
 -- @param boolean

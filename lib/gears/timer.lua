@@ -231,7 +231,13 @@ function timer:start()
         return
     end
 
-    quiet_start(self)
+    if self._private.randomized then
+        local next = get_next_interval(self) * math.random()
+        self._private.pending_reset = true
+        quiet_start(self, next)
+    else
+        quiet_start(self)
+    end
 
     self._private.started_ts = capi.awesome.mainloop_timestamp
 
@@ -386,6 +392,32 @@ function timer:set_timeout(value)
     self:emit_signal("property::timeout", value)
 end
 
+--- Randomize the length of the first iteration.
+--
+-- The delay will be between zero and `timeout`.
+--
+-- This option is useful to distribute the events across
+-- time. For example, if there is 2 timers at 5 seconds and
+-- one at 10 seconds, then 3 timeout will occur virtually at
+-- the same time. If they trigger a lot of code, then it might
+-- create visible latency.
+--
+-- Please also note that the opposite can also be resirable.
+-- Bundling multiple events at the same time can improve
+-- energy usage on laptops by letting them be idle for longer.
+--
+-- Using `randomized = true` is thus desirable for low latency
+-- and `randomized = false` is better for energy efficiency.
+--
+-- @property randomized
+-- @param boolean
+-- @propemits true false
+
+function timer:set_randomized(value)
+    self._private.randomized = value
+    self:emit_signal("property::randomized", value)
+end
+
 --- Nunber of seconds since the timer started.
 --
 -- This property is read-only.
@@ -440,6 +472,8 @@ end
 -- @tparam[opt=0] number args.initial_delay The number of seconds before auto-starting
 --   the timer. Note that `autostart` also needs to be set for the timer to
 --   actually start.
+-- @tparam[opt=false] boolean args.randomized Randomize the length of the first
+--  iteration (from zero to the value of `timeout`).
 -- @treturn timer
 -- @constructorfct gears.timer
 function timer.new(args)
@@ -448,6 +482,12 @@ function timer.new(args)
         enable_properties   = true,
         enable_auto_signals = true,
     }
+
+    if args.initial_delay and args.randomized then
+        gdebug.print_error(traceback(
+            "`randomized` and `initial_delay` are mutually exclusive"
+        ))
+    end
 
     gtable.crush(ret, timer, true)
 

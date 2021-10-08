@@ -146,6 +146,8 @@ local function timeout_common(self)
 
     protected_call(self.emit_signal, self, "timeout")
 
+    self._private.count = self._private.count + 1
+
     local pending = self._private.pending_reset
 
     if self._private.pending_reset then
@@ -221,6 +223,8 @@ function timer:start()
         gdebug.print_error(traceback("timer already started"))
         return
     end
+
+    self._private.count = 0
 
     -- If there is an initial delay, honor it.
     if self._private.initial_delay then
@@ -460,6 +464,18 @@ function timer:set_initial_delay(value)
     self:emit_signal("property::initial_delay", value)
 end
 
+--- The number of timeouts since the timer started.
+--
+-- Note that this property is reset each timer the timer
+-- is (re)started.
+--
+-- @property count
+-- @tparam number count
+
+function timer:get_count()
+    return self._private.count
+end
+
 --- Create a new timer object.
 -- @tparam table args Arguments.
 -- @tparam number args.timeout Timeout in seconds (e.g. 1.5).
@@ -497,6 +513,7 @@ function timer.new(args)
         last_wakeup   = capi.awesome.mainloop_timestamp,
         wake_up       = args.wake_up or false,
         initial_delay = args.initial_delay,
+        count         = 0
     })
 
     ret._private.timeout_function = function()
@@ -534,7 +551,8 @@ function timer.new(args)
 
     if args.callback then
         if args.call_now then
-            args.callback()
+            args.callback(ret)
+            ret._private.count = 1
         end
         ret:connect_signal("timeout", args.callback)
     end

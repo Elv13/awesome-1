@@ -139,6 +139,11 @@ end
 local function timeout_common(self)
     self._private.last_wakeup = capi.awesome.mainloop_timestamp
 
+    if self._private.started == false then
+        self:emit_signal("start")
+        self._private.started = true
+    end
+
     protected_call(self.emit_signal, self, "timeout")
 
     local pending = self._private.pending_reset
@@ -204,7 +209,11 @@ function timer._get_schedule_ts_offset(now, desc)
     return date_next:to_unix() - now
 end
 
+
 --- Start the timer.
+--
+-- If there is an initial_delay, the `start` signal will be emitted later.
+--
 -- @method start
 -- @emits start
 function timer:start()
@@ -213,10 +222,20 @@ function timer:start()
         return
     end
 
+    -- If there is an initial delay, honor it.
+    if self._private.initial_delay then
+        self._private.started = false
+        self._private.pending_reset = true
+        quiet_start(self, self._private.initial_delay * 1000)
+
+        return
+    end
+
     quiet_start(self)
 
     self._private.started_ts = capi.awesome.mainloop_timestamp
 
+    self._private.started = true
     self:emit_signal("start")
 
     if self._private.single_shot then
@@ -393,6 +412,22 @@ function timer:get_remaining()
     return next - capi.awesome.mainloop_timestamp
 end
 
+--- Number of seconds before the normal timeout cycle begins.
+--
+-- The value is in seconds.
+--
+-- Please note that setting this value does **not** start the timer.
+-- `:start()` still needs to be called.
+--
+-- @property initial_delay
+-- @tparam number initial_delay
+-- @propemits true false
+
+function timer:set_initial_delay(value)
+    self._private.initial_delay = value
+    self:emit_signal("property::initial_delay", value)
+end
+
 --- Create a new timer object.
 -- @tparam table args Arguments.
 -- @tparam number args.timeout Timeout in seconds (e.g. 1.5).
@@ -402,6 +437,9 @@ end
 -- @tparam[opt=nil] function args.callback Callback function to connect to the
 --  "timeout" signal.
 -- @tparam[opt=false] boolean args.single_shot Run only once then stop.
+-- @tparam[opt=0] number args.initial_delay The number of seconds before auto-starting
+--   the timer. Note that `autostart` also needs to be set for the timer to
+--   actually start.
 -- @treturn timer
 -- @constructorfct gears.timer
 function timer.new(args)
@@ -414,10 +452,11 @@ function timer.new(args)
     gtable.crush(ret, timer, true)
 
     rawset(ret, "_private", {
-        timeout     = 0,
-        single_shot = args.single_shot or false,
-        last_wakeup = capi.awesome.mainloop_timestamp,
-        wake_up     = args.wake_up or false
+        timeout       = 0,
+        single_shot   = args.single_shot or false,
+        last_wakeup   = capi.awesome.mainloop_timestamp,
+        wake_up       = args.wake_up or false,
+        initial_delay = args.initial_delay,
     })
 
     ret._private.timeout_function = function()

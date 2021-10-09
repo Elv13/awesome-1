@@ -72,6 +72,11 @@ local gdebug = require("gears.debug")
 --- When the timer had a timeout event.
 -- @signal timeout
 
+--- When the number of timeout reaches the value of `iterations`.
+-- @signal finished
+-- @see single_shot
+-- @see iterations
+
 local timer, all_timers = { mt = {} }, setmetatable({}, {__mode = "v"})
 
 -- Get how many millisecond the timer should wait upon for the next
@@ -144,9 +149,10 @@ local function timeout_common(self)
         self._private.started = true
     end
 
+    self._private.count = self._private.count + 1
+
     protected_call(self.emit_signal, self, "timeout")
 
-    self._private.count = self._private.count + 1
 
     local pending = self._private.pending_reset
 
@@ -154,6 +160,13 @@ local function timeout_common(self)
         self._private.pending_reset = false
         quiet_stop(self)
         quiet_start(self, type(pending) == "number" and pending or nil)
+    end
+
+    local it = self._private.iterations or math.huge
+
+    if self._private.count >= it or self._private.single_shot then
+        self:emit_signal("finished")
+        return false
     end
 
     return true
@@ -476,6 +489,20 @@ function timer:get_count()
     return self._private.count
 end
 
+--- Number of timeouts before auto-stopping.
+--
+-- @property iterations
+-- @tparam number iterations
+-- @propemits true false
+-- @emits finished After the timer timeouts the `iterations` time.
+-- @see single_shot
+-- @see finished
+
+function timer:set_iterations(value)
+    self._private.iterations = value
+    self:emit_signal("property::iterations", value)
+end
+
 --- Create a new timer object.
 -- @tparam table args Arguments.
 -- @tparam number args.timeout Timeout in seconds (e.g. 1.5).
@@ -490,6 +517,8 @@ end
 --   actually start.
 -- @tparam[opt=false] boolean args.randomized Randomize the length of the first
 --  iteration (from zero to the value of `timeout`).
+--@tparam[opt=nil] number args.iterations The number of timeout before stopping
+--  the timer.
 -- @treturn timer
 -- @constructorfct gears.timer
 function timer.new(args)
@@ -513,7 +542,8 @@ function timer.new(args)
         last_wakeup   = capi.awesome.mainloop_timestamp,
         wake_up       = args.wake_up or false,
         initial_delay = args.initial_delay,
-        count         = 0
+        count         = 0,
+        iterations    = args.iterations,
     })
 
     ret._private.timeout_function = function()
@@ -614,6 +644,10 @@ end
 --
 -- @property single_shot
 -- @tparam[opt=false] boolean single_shot
+-- @propemits true false
+-- @emits finished After the timer timeout once.
+-- @see iterations
+-- @see finished
 
 function timer:set_single_shot(value)
     if self._private.single_shot == value then return end

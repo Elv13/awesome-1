@@ -400,7 +400,7 @@ end
 --
 -- If the multiplier is lesser than one, then it will make the timeout happen
 -- more often. For example, for `{second = 0, multiplier = 1/3}`, the timeout
--- will occur at `:00:, `:20`, `:40` of every minute.
+-- will occur at `:00`, `:20`, `:40` of every minute.
 --
 -- If the multiplier of greater than 1, then it will happen *less* often. For
 -- example, for `{ minute = 0, multiplier = 2}`, the timeout will happen every

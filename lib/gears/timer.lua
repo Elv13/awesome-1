@@ -242,9 +242,10 @@ end
 -- @method start
 -- @emits start
 function timer:start()
+    -- There is ~5 ways to start a timer. Rather than complain,
+    -- just be nice and handle it internally.
     if self._private.source_id ~= nil then
-        gdebug.print_error(traceback("timer already started"))
-        return
+        quiet_stop(self)
     end
 
     self._private.count = 0

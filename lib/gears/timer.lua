@@ -92,16 +92,26 @@ local function get_next_interval(self, now, skip)
             self._private.timeout
         )
 
+        local next_plus_one = (not skip) and get_next_interval(self, now + next + 0.001, true)
+        local multiplier = self._private.timeout.multiplier or 1
+
         -- Make sure it settle down on an alignment "eventualy".
         -- The timers are never very accurate, let leave a 500ms "room". Otherwise,
         -- the timer will be recomputed every single time for no reason.
-        if (not skip) and math.abs(next * 1000 - get_next_interval(self, now + next + 0.1, true)) > 500 then
-            self._private.pending_reset = get_next_interval(self, now + next + 0.001, true)
+        if (not skip) and math.abs(next * 1000 - next_plus_one) > 500 then
+            self._private.pending_reset = next_plus_one * multiplier
         end
 
         -- The 1 is because we added a millisecond after the next timeout
         -- and need to substrct it here.
-        return math.floor(next * 1000 + (skip and 1 or 0))
+        local ret = math.floor(next * 1000 + (skip and 1 or 0))
+
+        -- Apply the multiplier.
+        if next_plus_one and multiplier ~= 1 and ret > next_plus_one * multiplier then
+            ret = math.floor(ret % (next_plus_one * multiplier))
+        end
+
+        return ret
     end
 end
 
@@ -376,7 +386,25 @@ end
 
 --- The timer timeout value.
 --
--- The value is in seconds.
+-- The value can be a number (in seconds). It can also be a table with
+-- the following:
+--
+--  * **second**: Number from 0 to 59.
+--  * **minute**: Number from 0 to 59.
+--  * **hour**: Number from 0 to 23.
+--  * **day**: Number from 1 to 31.
+--  * **month**: Number between 1 and 12.
+--  * **year**: Full year number (eg. 2021) starting with the current year.
+--  * **multiplier**: Floating point number to divide/multiply the number of
+--    seconds between 2 timeouts.
+--
+-- If the multiplier is lesser than one, then it will make the timeout happen
+-- more often. For example, for `{second = 0, multiplier = 1/3}`, the timeout
+-- will occur at `:00:, `:20`, `:40` of every minute.
+--
+-- If the multiplier of greater than 1, then it will happen *less* often. For
+-- example, for `{ minute = 0, multiplier = 2}`, the timeout will happen every
+-- 2 hours.
 --
 -- @property timeout
 -- @param number

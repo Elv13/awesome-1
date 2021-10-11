@@ -115,6 +115,37 @@ local function get_next_interval(self, now, skip)
     end
 end
 
+local function update_stop_ts(self)
+    self._private.stop_ts = timer._get_schedule_ts_offset(
+        capi.awesome.mainloop_timestamp,
+        self._private.stop_at
+    ) * 1000
+
+    if self._private.stop_source_id then
+        glib.source_remove(self._private.stop_source_id)
+    end
+
+    if not self._private.stop_cb then
+        function self._private.stop_cb()
+            if self._private.stop_source_id then
+                glib.source_remove(self._private.stop_source_id)
+            end
+
+            self._private.stop_source_id = nil
+
+            self:emit_signal("finished")
+            self:stop()
+        end
+    end
+
+    self._private.stop_source_id = glib.timeout_add(
+        glib.PRIORITY_DEFAULT,
+        self._private.stop_ts,
+        self._private.stop_cb
+    )
+
+end
+
 --- Update AwesomeWM internal event loop stalling detection.
 --
 -- If the system goes to sleep or misses extensive time, this
@@ -163,10 +194,13 @@ local function timeout_common(self)
 
     protected_call(self.emit_signal, self, "timeout")
 
-
     local pending = self._private.pending_reset
 
-    if self._private.pending_reset then
+    if self._private.stop_at and (pending or not self._private.stop_ts) then
+        update_stop_ts(self)
+    end
+
+    if pending then
         self._private.pending_reset = false
         quiet_stop(self)
         quiet_start(self, type(pending) == "number" and pending or nil)
@@ -187,6 +221,12 @@ local function resume_timers()
         local prev_wakeup = t._private.last_wakeup or -1
 
         local past_due = prev_wakeup + get_next_interval(t) < awesome.mainloop_timestamp
+
+        if t._private.stop_ts < awesome.mainloop_timestamp then
+            t:emit_signal("finished")
+            t:stop()
+            return
+        end
 
         if past_due and t._private.wake_up then
             t._private.pending_reset = true
@@ -237,7 +277,8 @@ end
 
 --- Start the timer.
 --
--- If there is an initial_delay, the `start` signal will be emitted later.
+-- If there is an `initial_delay` or `start_at`, the `start` signal will
+-- be emitted later.
 --
 -- @method start
 -- @emits start
@@ -255,6 +296,17 @@ function timer:start()
         self._private.started = false
         self._private.pending_reset = true
         quiet_start(self, self._private.initial_delay * 1000)
+
+        return
+    elseif self._private.start_at then
+        local delay = self._get_schedule_ts_offset(
+            capi.awesome.mainloop_timestamp,
+            self._private.start_at
+        ) * 1000
+
+        self._private.started = false
+        self._private.pending_reset = true
+        quiet_start(self, delay)
 
         return
     end
@@ -464,6 +516,46 @@ function timer:set_randomized(value)
     self:emit_signal("property::randomized", value)
 end
 
+--- When the timer starts.
+--
+-- Note that using this property still requires something to either call
+-- `:start()` or set `autostart` in the constructor. This tells when timer
+-- *when* to start, not *if* it is started.
+--
+-- Note that setting this property will reset `initial_delay` as they are
+-- both mutually exclusive.
+--
+-- @property start_at
+-- @tparam[opt=nil] table start_at
+-- @propemits true false
+-- @see stop_at
+-- @see initial_delay
+
+function timer:set_start_at(value)
+    if self._private.initial_delay then
+        self.initial_delay = nil
+    end
+
+    self._private.start_at = value
+
+    self:emit_signal("property::start_at", value)
+end
+
+--- When the timer stops.
+--
+-- @property stop_at
+-- @tparam[opt=nil] table start_at
+-- @propemits true false
+-- @emits finished When the timer stops.
+-- @see start_at
+-- @see iterations
+
+function timer:set_stop_at(value)
+    self._private.stop_at = value
+
+    self:emit_signal("property::stop_at", value)
+end
+
 --- Nunber of seconds since the timer started.
 --
 -- This property is read-only.
@@ -495,13 +587,19 @@ end
 -- The value is in seconds.
 --
 -- Please note that setting this value does **not** start the timer.
--- `:start()` still needs to be called.
+-- `:start()` still needs to be called. Also note that setting this
+-- property will reset the `start_at` property as they are mutually
+-- exclusive.
 --
 -- @property initial_delay
 -- @tparam number initial_delay
 -- @propemits true false
 
 function timer:set_initial_delay(value)
+    if self._private.start_at then
+        self.start_at = nil
+    end
+
     self._private.initial_delay = value
     self:emit_signal("property::initial_delay", value)
 end
@@ -548,6 +646,8 @@ end
 --  iteration (from zero to the value of `timeout`).
 --@tparam[opt=nil] number args.iterations The number of timeout before stopping
 --  the timer.
+-- @tparam[opt=nil] table args.start_at Wait until this time to "really" start.
+-- @tparam[opt=nil] table args.stop_at Stop the timer at this time.
 -- @treturn timer
 -- @constructorfct gears.timer
 function timer.new(args)
@@ -573,6 +673,8 @@ function timer.new(args)
         initial_delay = args.initial_delay,
         count         = 0,
         iterations    = args.iterations,
+        start_at      = args.start_at,
+        stop_at       = args.stop_at,
     })
 
     ret._private.timeout_function = function()

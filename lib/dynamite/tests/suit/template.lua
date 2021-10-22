@@ -233,8 +233,8 @@ local function test_overlap(s, t, allow_complete)
     -- First, make sure the screens don't overlap, because it is unsupported
     -- and will make the test below fail due to reasons unrelated to the code
     -- it attempt to test
-    for _, s1 in ipairs(screen) do
-        for _, s2 in ipairs(screen) do
+    for s1 in screen do
+        for s2 in screen do
             if s1 ~= s2 then
                 local int = g_geo.rectangle.get_intersection(s1.geometry, s2.geometry)
                 assert(int.width == 0 and int.height == 0)
@@ -632,7 +632,7 @@ end
 
 function module.take_snapshot()
     -- Print an outline for the screens
-    for _, s in ipairs(screen) do
+    for s in screen do
         cr:save()
         -- Draw the screen outline
         cr:set_source(color("#00000044"))
@@ -688,8 +688,8 @@ function module.take_snapshot()
 
     -- Add the labels
     if module.display.column_label_callback then
-        for k, s in ipairs(screen) do
-            local label = module.display.column_label_callback(k)
+        for s in screen do
+            local label = module.display.column_label_callback(s.index)
             local geo   = s.geometry
 
             local tb = wibox.widget {
@@ -744,10 +744,10 @@ function module.take_snapshot()
         if not c.minimized then
             local pgeo = nil
             clean_old_geo(c)
-            local geos = properties.view.show_old == false
-                and c._old_geo[#c._old_geo] or c._old_geo
+            local geos = properties.view.show_old ~= true
+                and {c._old_geo[#c._old_geo]} or c._old_geo
 
-            for _, geo in ipairs(c._old_geo) do
+            for _, geo in ipairs(geos) do
                 if not geo._hide then
 
                     if properties.view.index_client then

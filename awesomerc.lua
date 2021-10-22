@@ -130,9 +130,6 @@ mytextclock = wibox.widget.textclock()
 
 -- @DOC_FOR_EACH_SCREEN@
 screen.connect_signal("request::desktop_decoration", function(s)
-    -- Each screen has its own tag table.
-    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
-
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
 
@@ -461,6 +458,25 @@ end)
 -- }}}
 
 -- {{{ Rules
+
+-- Rules for the tags.
+tag.connect_signal("request::rules", function()
+    -- Create nine tags names from 1 to 9.
+    for i=1, 9 do
+        -- Each tag accept all clients and are created at launch.
+        ruled.tag.append_rule {
+            rule        = { }, -- matches everything
+            properties  = {
+                init             = true,
+                name             = i,
+                selected         = i == 1,
+                fallback         = true,
+                only_on_selected = true,
+            }
+        }
+    end
+end)
+
 -- Rules to apply to new clients.
 -- @DOC_RULES@
 ruled.client.connect_signal("request::rules", function()

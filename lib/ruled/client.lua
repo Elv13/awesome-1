@@ -524,6 +524,12 @@ function module.high_priority_properties.tags(c, value, props)
     end
 end
 
+function module.high_priority_properties.intrusive(c, value, props)
+    if not value then return end
+
+    c:tags(gtable.merge(c:tags(), c.screen.selected_tags))
+end
+
 --- Apply properties and callbacks to a client.
 -- @tparam client c The client.
 -- @tparam table props Properties to apply.

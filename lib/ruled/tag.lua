@@ -1,28 +1,58 @@
 ---------------------------------------------------------------------------
 --- Rules for tags.
 --
+-- Static tags
+-- ===========
+--
 -- In this first example, we create 9 tags which are automatically initialized
 -- even when there is no clients:
 --
--- @DOC_ruled_tag_rules_basic_EXAMPLE@
+-- @DOC_sequences_tag_rules_basic_EXAMPLE@
 --
--- In this second example, we create a tag called "calculator" which is only
+-- This is how the default `rc.lua` works. You get a static number of tags created
+-- at startup and they never really change. This is very convinient when accustomed
+-- to the classic virtual desktop context. How allows to have simple and deterministic
+-- keybindings to switch to a specific tags, because they never move.
+--
+-- However it is rather restrictive to automate your workflow. This forces you to either
+-- hardcode all applications you will use or to manually manager every client. Dynamic
+-- tags, demonstrated below, create and destroy tags based on what you are doing.
+--
+-- Dynamic tags
+-- ============
+--
+-- The concept of dynamic tagging is to create and destroy tags based on what is going
+-- on. For example, an "Internet" tag can be created when you start your web browsing.
+-- Another example would be splitting tags in smaller parts when they contain too many
+-- clients.
+--
+-- In this example, we create a tag called "calculator" which is only
 -- created when wither `kcalc`, `gnome-calculator` or `wxmaxima` is started.
 -- The tag is also volatile so it will get destroyed when the last client
 -- gets closed.
 --
--- @DOC_ruled_tag_rules_exclusive_EXAMPLE@
+-- @DOC_sequences_tag_rules_exclusive_EXAMPLE@
 --
 -- In this example, the rules are configured to create new tags for each client
 -- class and assign at most 2 clients per tag, after which a new tag will be
 -- created. It also demonstrate how to use a function on the `index` property
 -- to place tags with the same name next to each other.
 --
--- @DOC_ruled_tag_rules_groups_EXAMPLE@
+-- @DOC_sequences_tag_rules_groups_EXAMPLE@
 --
 -- This example shows how to use tag rules to send clients to a specific screen.
 --
--- @DOC_ruled_tag_rules_multiscreen1_EXAMPLE@
+-- Multiple screens
+-- ================
+--
+-- In this example, the tags can only be created on screen 2 and 4. If the client
+-- aims to appear on screen 1 or 3, it will be moved:
+--
+-- @DOC_sequences_tag_rules_multiscreen2_EXAMPLE@
+--
+-- In this example, different screens have different rules for the same class:
+--
+-- @DOC_sequences_tag_rules_multiscreen1_EXAMPLE@
 --
 -- Properties available in the rules
 -- =================================
@@ -52,7 +82,13 @@ local instances, screen_init = setmetatable({}, {__mode="k"}), false
  * TODO support eminent style, create_on_next
  * TODO request::position (screen, args)
  * TODO shared_tags examples
-
+ * TODO document all tag rule properties
+ * TODO document client.intrusive
+ * TODO tag<->client focus policies
+ * TODO tag.allowed_classes ?
+ * TODO gears.marcher.fallback
+ * TODO a DOC_COMMON for rule/rule_any_rule_except, etc...
+ * TODO finish tag.state
 awful.tag.rules.add_rule {
     rule = {
         screens  = "all", -- {screen[1]}, "primary", "LVDS-1", {1, 2, 3}
@@ -232,14 +268,16 @@ local function wrap_args(rule, args, c)
         local scr1, src2 = nil
         if rule.rule and rule.rule.screen then
             scr1 = get_screen(rule.rule.screen)
-        elseif rule.rule_any and rule.rule_any.screen then
-            for _, s in ipairs(rule.rule_any.screen) do
-                src2 = src2 or s
-                src1 = s == ascreen.focused() and s
-                if src1 then break end
+        else
+            for _, rule_type in ipairs {"rule_except", "rule_any", "rule_every" } do --FIXME incorrect?
+                if rule[rule_type] and rule[rule_type].screen then
+                    for _, s in ipairs(rule[rule_type].screen) do
+                        src2 = src2 or s
+                        src1 = s == ascreen.focused() and s
+                        if src1 then break end
+                    end
+                end
             end
-        elseif rule.rule_except and rule.rule_except.screen then
-            --TODO
         end
 
         nargs = scr1 or src2 or (c and c.screen) or ascreen.focused()
@@ -271,13 +309,36 @@ local function create_tag(rule, args, c)
         end
     end
 
-    if args.screen and get_screen(args.screen) ~= get_screen(rule.properties.screen) then
-        real_rules.screen = args.screen
+    local args_screen = get_screen(args.screen)
+
+    -- Even if `args.screen` is set, this rule mandates speific screens.
+    if rule.properties.screens and #rule.properties.screens > 0 then
+        local pref, selected1, selected2 = ascreen.preferred(), nil, nil
+
+        -- args_screen gets the priority, but ascreen.preferred is also good.
+        for _, s in ipairs(rule.properties.screens) do
+            s = get_screen(s)
+            if s == args_screen then
+                selected1 = s
+                break
+            elseif s == pref then
+                selected2 = s
+            end
+        end
+
+        args_screen = selected1 or selected2
+
+        -- No "better" screen found, pick the first one.
+        --TODO pick the closest by geometry?
+        if not args_screen then
+            real_rules.screen = get_screen(rule.properties.screens[1])
+        end
+    elseif args_screen and args_screen ~= get_screen(rule.properties.screen) then
+        real_rules.screen = args_screen
     end
 
     -- Make sure the screen is always set.
-    --TODO support multi-screen choice
-    real_rules.screen = real_rules.screen or (c and c.screen or mouse.screen)
+    real_rules.screen = real_rules.screen or (c and c.screen or ascreen.preferred())
 
     local name = type(rule.properties.name) == "function" and rule.properties.name(c, rule)
         or rule.properties.name or (c and c.class) or "N/A"
@@ -310,10 +371,23 @@ local function apply_extra_properties(c, rules)
 end
 
 trules:add_matching_function("awful.tag.rules", function(_, c, props, callbacks)
+    -- Get all matching rules.
+    local matches = trules:matching_rules(c, rules)
+
+    -- Split the main ones from the fallback ones.
+    local main, fallback = {}, {}
+
+    for _, match in ipairs(matches) do
+        table.insert(match.fallback and fallback or main, match)
+    end
+
+    -- Select which set to use.
+    matches = #main > 0 and main or fallback
+
     -- The difference between this and the "normal" callback is that this one
     -- preserve each matching rules while the "normal" one crushes the
     -- properties into a table. This would make it impossible to multi-tag.
-    for _, entry in ipairs(trules:matching_rules(c, rules)) do
+    for _, entry in ipairs(matches) do
         if entry.properties then
             table.insert(props, entry)
         end
@@ -374,7 +448,24 @@ function trules:_execute(c, matching_rules, callbacks, args)
     end
 
     if c and #tags > 0 then
-        c:tags(tags_by_screen[c.screen] or next(tags_by_screen))
+        local selected_tags = tags_by_screen[c.screen] or {}
+
+        if #selected_tags == 0 then
+            for k,v in pairs(tags_by_screen) do
+                if #v > 0 then
+                    selected_tags = v
+                    break
+                end
+            end
+        end
+
+        c:tags(selected_tags)
+
+        -- Client rules like `placement` will misbehave if the client is left
+        -- on its original screen.
+        if selected_tags[1].screen ~= c.screen then
+            c.screen = selected_tags[1].screen
+        end
 
         apply_extra_properties(c, confirmed_rules)
     end
@@ -454,15 +545,21 @@ end
 
 local function create_init_tags(rule, new_screen)
     local scrs = {}
-    if rule.rule_any and type(rule.rule_any.screen) == "function" then
-        scrs = rule.rule_any.screen(nil, rule)
-    elseif rule.rule and type(rule.rule.screen) == "function" then
+    if rule.rule and type(rule.rule.screen) == "function" then
         scrs = {rule.rule.screen(nil, rule)}
-    elseif rule.rule_any and rule.rule_any.screen then
-        scrs = rule.rule_any.screen
     elseif rule.rule.screen then
         scrs = {rule.rule.screen}
     else
+        for _, rule_type in ipairs {"rule_except", "rule_any", "rule_every" } do
+            if rule[rule_type] and type(rule[rule_type].screen) == "function" then
+                scrs = rule[rule_type].screen(nil, rule) or {} --FIXME sum the screens and clone
+            elseif rule[rule_type] and rule[rule_type].screen then
+                scrs = rule[rule_every].screen --FIXME sum the screens and clone
+            end
+        end
+    end
+
+    if #scrs == 0 then
         for s in screen do
             table.insert(scrs, s)
         end

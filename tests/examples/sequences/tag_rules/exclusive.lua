@@ -3,12 +3,12 @@ local module = ... --DOC_HIDE
 local ruled = {tag = require("ruled.tag"), client = require("ruled.client") } --DOC_HIDE
 local awful = {tag = require("awful.tag"), layout = require("awful.layout")} --DOC_HIDE
 require("awful.ewmh") --DOC_HIDE
+client._autotags = false --DOC_HIDE
 screen[1]._resize {x = 0, width = 128, height = 96} --DOC_HIDE
 
 function awful.spawn(name, args) --DOC_HIDE
     local c = client.gen_fake{class = name, name = name, x = 10, y=10, width = 60, height =50} --DOC_HIDE
 end --DOC_HIDE
-
     -- Add some **tag** rules. Note that the `rule` and `rule_any` section
     -- actually match clients.
     tag.connect_signal("request::rules", function()
@@ -56,7 +56,7 @@ tag.emit_signal("request::rules") --DOC_HIDE
 
     -- Add a **client** rule to allow `kcolorchooser` to be added to the
     -- selected tags regardless of their `exclusive` or `locked` properties.
-    client.connect_signal("request::rules", function()
+    ruled.client.connect_signal("request::rules", function()
         ruled.client.append_rule {
             rule_any    = {
                 class = {"kcolorchooser"}
@@ -128,6 +128,7 @@ module.add_event("Kill kcalc and kcolorchooser", function() --DOC_HIDE
             c:kill()
         end
     end
+
 end) --DOC_HIDE
 
 module.display_tags() --DOC_HIDE

@@ -2,6 +2,7 @@
 local module = ... --DOC_HIDE
 local ruled = {tag = require("ruled.tag"), client = require("ruled.client")} --DOC_HIDE
 local awful = {tag = require("awful.tag"), layout = require("awful.layout") } --DOC_HIDE
+client._autotags = false --DOC_HIDE
 require("awful.ewmh") --DOC_HIDE
 screen[1]._resize {x = 0, width = 128, height = 96} --DOC_HIDE
 

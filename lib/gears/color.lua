@@ -53,6 +53,7 @@ local surface = require("gears.surface")
 
 local color = { mt = {} }
 local pattern_cache
+local color_string_cache = setmetatable({}, { __mode = "k" })
 
 --- Parse a HTML-color.
 -- This function can parse colors like `#rrggbb` and `#rrggbbaa` and also `red`.
@@ -348,12 +349,54 @@ function color.recolor_image(image, new_color)
     return image
 end
 
+--- Convert a color back to an hexadecimal color code.
+--
+-- This takes an input color, pattern or gradient and attempt to convert it
+-- to a color. If this fails, `fallback` is returned. This is useful when a
+-- color needs to be concatenated into a Pango markup string.
+--
+-- @staticfct gears.color.to_rgba_string
+-- @tparam pattern|string|gradient color
+-- @tparam[opt=nil]  pattern|string|gradient fallback The color to return
+--  if `color` cannot be converted to a string.
+-- @see gears.color.ensure_pango_color
+
+function color.to_rgba_string(col, fallback)
+    -- Prevent infinite recursion.
+    if not col then return nil end
+
+    if color_string_cache[col] then
+        return color_string_cache[col]
+    end
+
+    col = color.create_pattern(col)
+
+    local error, r, g, b, a = col:get_rgba()
+
+    if error ~= "SUCCESS" then return color.to_rgba_string(fallback) end
+
+    color_string_cache[col] = string.format(
+        "#%02x%02x%02x",
+        math.floor(r*255),
+        math.floor(b*255),
+        math.floor(g*255),
+        math.floor(a*255)
+    )
+
+    return color_string_cache[col]
+end
+
 --- Get a valid color for Pango markup
 -- @param check_color The color to check.
 -- @tparam string fallback The color to return if the first is invalid. (default: black)
 -- @treturn string color if it is valid, else fallback.
 -- @staticfct gears.color.ensure_pango_color
 function color.ensure_pango_color(check_color, fallback)
+    -- This will happen if `gears.color` has been called in the theme.
+    if type(check_color) == "userdata" then
+        return color.to_rgba_string(check_color, fallback)
+    end
+
     check_color = tostring(check_color)
     -- Pango markup supports alpha, PangoColor does not. Thus, check for this.
     local len = #check_color

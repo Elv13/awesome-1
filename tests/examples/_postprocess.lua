@@ -10,12 +10,13 @@ local input, output = ...
 -- The second 24bit is just the 32 bit converted to #010001 and back.
 local FOREGROUNDS = {
     "rgb[(]0[.]5%%,0%%,0[.]5%%[)];",
-    "rgb[(]0[.]392157%%,0%%,0[.]392157%%[)];"
+    "rgb[(]0[.]392157%%,0%%,0[.]392157%%[)];",
+    "#010001",
 }
 
 local CLASSES = {
-    stroke = ".svg_stroke",
-    fill   = ".svg_fill"
+    stroke = "svg_stroke",
+    fill   = "svg_fill"
 }
 
 local i, o = io.open(input, "r"), io.open(output, "w")

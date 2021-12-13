@@ -378,8 +378,8 @@ function color.to_rgba_string(col, fallback)
     color_string_cache[col] = string.format(
         "#%02x%02x%02x",
         math.floor(r*255),
-        math.floor(b*255),
         math.floor(g*255),
+        math.floor(b*255),
         math.floor(a*255)
     )
 

@@ -34,11 +34,13 @@
 local ipairs = ipairs
 local type = type
 local capi = {
-    screen = screen,
-    mouse  = mouse,
+    screen  = screen,
+    mouse   = mouse,
     awesome = awesome,
-    client = client,
-    tag = tag
+    client  = client,
+    drawin  = drawin,
+    tag     = tag,
+    root    = root,
 }
 local tag = require("awful.tag")
 local client = require("awful.client")
@@ -53,7 +55,7 @@ local function get_screen(s)
     return s and capi.screen[s]
 end
 
-local layout = {}
+local layout = require("awful.layout._stacking")
 
 -- Support `table.insert()` to avoid breaking old code.
 local default_layouts = setmetatable({}, {
@@ -63,7 +65,6 @@ local default_layouts = setmetatable({}, {
         layout.append_default_layout(value)
     end
 })
-
 
 layout.suit = require("awful.layout.suit")
 
@@ -237,6 +238,7 @@ end
 -- @tparam screen screen The screen to arrange.
 -- @noreturn
 -- @staticfct awful.layout.arrange
+-- @see restack
 function layout.arrange(screen)
     screen = get_screen(screen)
     if not screen or delayed_arrange[screen] then return end
@@ -416,6 +418,11 @@ function layout.move_handler(c, context, hints) --luacheck: no unused args
         end
     end
 end
+
+--- Arrange the clients on the Z axis.
+-- @staticfct awful.layout.restack
+-- @noreturn
+-- @see arrange
 
 capi.client.connect_signal("request::geometry", layout.move_handler)
 

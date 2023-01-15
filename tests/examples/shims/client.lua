@@ -234,11 +234,25 @@ function client.gen_fake(args)
     end
 
     function ret:raise()
-        --TODO
+        for idx, c in ipairs(clients) do
+            if c == self then
+                table.remove(clients, idx)
+                break
+            end
+        end
+
+        table.insert(clients, self)
     end
 
     function ret:lower()
-        --TODO
+        for idx, c in ipairs(clients) do
+            if c == self then
+                table.remove(clients, idx)
+                break
+            end
+        end
+
+        table.insert(clients, 1, self)
     end
 
     function ret:apply_size_hints(w, h)
@@ -422,7 +436,7 @@ function client.gen_fake(args)
     return ret
 end
 
-function client.get(s)
+function client.get(s, stacked) --luacheck: no unused args
     if not s then return clients end
 
     local s2 = screen[s]

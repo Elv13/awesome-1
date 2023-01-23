@@ -19,6 +19,7 @@ local function new_drawin(_, args)
     ret.ontop = false
     ret.below = false
     ret.above = false
+    ret._is_drawin = true
 
     ret.geometry = function(_, new)
         new = new or {}
@@ -62,6 +63,8 @@ local function new_drawin(_, args)
     end
 
     table.insert(drawins, md)
+
+    client.emit_signal("request::restack", "append", {drawin = md})
 
     return md
 end

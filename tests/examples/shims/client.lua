@@ -65,6 +65,21 @@ local native_property_defaults = {
     height = 1,
 }
 
+-- When is `request::restack` needed.
+local restack_needed = {
+    ontop         = true,
+    below         = true,
+    above         = true,
+    sticky        = true,
+    urgent        = true,
+    modal         = true,
+    focusable     = true,
+    hidden        = true,
+    screen        = true,
+    minimized     = true,
+    transient_for = true,
+}
+
 -- Keep an history of the geometry for validation and images
 local function push_geometry(c)
     table.insert(c._old_geo, c:geometry())
@@ -85,6 +100,10 @@ local function titlebar_meta(c)
     end
 end
 
+local function restack(context, c)
+    client.emit_signal("request::restack", context, {client = c})
+end
+
 local properties = {}
 
 -- Emit the request::geometry signal to make immobilized and awful.ewmh work.
@@ -101,6 +120,7 @@ for _, prop in ipairs {
             self:emit_signal("request::geometry", prop, nil)
         end
 
+        restack(prop, self)
         self:emit_signal("property::"..prop, value)
     end
 end
@@ -357,6 +377,8 @@ function client.gen_fake(args)
     -- Set the geometry *again* because the screen possibly overwrote it.
     for _, v in ipairs{"x","y","width","height"} do
         ret[v] = args[v] or ret[v]
+        assert((not args[v]) or ret[v] == args[v])
+        assert(ret:geometry()[v] == (args[v] or ret[v]))
     end
 
     -- Record the geometry
@@ -410,6 +432,10 @@ function client.gen_fake(args)
 
             if defaults[key] ~= nil then
                 defaults[key] = value
+
+                if restack_needed[key] then
+                    restack(key, self)
+                end
             else
                 meta.__newindex(self, key, value)
             end
@@ -427,6 +453,15 @@ function client.gen_fake(args)
     end
 
     client.emit_signal("request::manage", ret)
+
+    local pre_sack = ret:geometry()
+    restack("append", ret)
+    local post_sack = ret:geometry()
+
+    -- Make sure stacking doesn't move the clients.
+    for _, v in ipairs{"x","y","width","height"} do
+        assert(pre_sack[v] == post_sack[v], "The stacking code has side effects")
+    end
 
     --TODO v6 remove this.
     client.emit_signal("manage", ret)

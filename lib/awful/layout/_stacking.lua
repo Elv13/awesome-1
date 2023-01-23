@@ -51,7 +51,6 @@ function module._restack_handler(context, hints) -- luacheck: no unused args
 end
 
 function module.restack()
-
     local layers = {}
 
     local function append(o)
@@ -62,8 +61,13 @@ function module.restack()
 
     local drawins, clients = capi.drawin.get(), capi.client.get(nil, true)
 
-    for _, c in ipairs(clients) do append(c) end
-    for i=#drawins, 1, -1 do append(drawins[i].get_wibox()) end
+    for _, c in ipairs(clients) do
+          append(c)
+    end
+
+    for i=#drawins, 1, -1 do
+        append(drawins[i].get_wibox and drawins[i].get_wibox() or drawins[i])
+    end
 
     local result = {}
 
@@ -76,6 +80,7 @@ function module.restack()
     end
 
     capi.root._set_stacking_order(result)
+    capi.client.emit_signal("stacking", result)
 end
 
 -- Translate the `request::raise`, which will trigger a  `"request::restack"`.

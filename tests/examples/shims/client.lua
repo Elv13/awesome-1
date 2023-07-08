@@ -1,7 +1,7 @@
 local gears_obj = require("gears.object")
 local grect = require("gears.geometry").rectangle
 
-local clients = {}
+local clients, stacked_clients = {}, {}
 
 local client, meta = awesome._shim_fake_class()
 
@@ -80,6 +80,12 @@ local restack_needed = {
     transient_for = true,
 }
 
+local exclusive, exclusive_invert = { "above", "below", "ontop" }, {}
+
+for _, v in ipairs(exclusive) do
+    exclusive_invert[v] = true
+end
+
 -- Keep an history of the geometry for validation and images
 local function push_geometry(c)
     table.insert(c._old_geo, c:geometry())
@@ -100,7 +106,14 @@ local function titlebar_meta(c)
     end
 end
 
-local function restack(context, c)
+local function restack(context, c, prop, value)
+    -- Fix the layer. `optop` and `below` cannot be both `true`.
+    if exclusive_invert[prop] then
+        for _, v in ipairs(exclusive) do
+            c[v] = (prop == v and value) or (c[v] and not value)
+        end
+    end
+
     client.emit_signal("request::restack", context, {client = c})
 end
 
@@ -120,7 +133,7 @@ for _, prop in ipairs {
             self:emit_signal("request::geometry", prop, nil)
         end
 
-        restack(prop, self)
+        restack(prop, self, prop, value)
         self:emit_signal("property::"..prop, value)
     end
 end
@@ -253,26 +266,33 @@ function client.gen_fake(args)
         return require("beautiful").awesome_icon
     end
 
-    function ret:raise()
-        for idx, c in ipairs(clients) do
-            if c == self then
-                table.remove(clients, idx)
+    local function remove_from_table(t)
+        for idx, c in ipairs(t) do
+            if c == ret then
+                table.remove(t, idx)
                 break
             end
         end
+    end
 
-        table.insert(clients, self)
+    function ret:raise()
+        for _, t in ipairs { clients, stacked_clients } do
+            remove_from_table(t)
+        end
+
+        table.insert(clients, ret)
+        table.insert(stacked_clients, 1, ret)
+        restack(ret, "raise")
     end
 
     function ret:lower()
-        for idx, c in ipairs(clients) do
-            if c == self then
-                table.remove(clients, idx)
-                break
-            end
+        for _, t in ipairs { clients, stacked_clients } do
+            remove_from_table(t)
         end
 
-        table.insert(clients, 1, self)
+        table.insert(clients, 1, ret)
+        table.insert(stacked_clients, ret)
+        restack(ret, "lower")
     end
 
     function ret:apply_size_hints(w, h)
@@ -281,6 +301,8 @@ function client.gen_fake(args)
 
     function ret:kill()
         local old_tags = ret:tags() or {}
+
+        remove_from_table(stacked_clients)
 
         for k, c in ipairs(clients) do
             if c == ret then
@@ -303,18 +325,21 @@ function client.gen_fake(args)
     end
 
     function ret:swap(other)
-        local idx1, idx2 = nil, nil
-        for k, c in ipairs(clients) do
-            if c == ret then
-                idx1 = k
-            elseif c == other then
-                idx2 = k
+        for _, t in ipairs { clients, stacked_clients } do
+            local idx1, idx2 = nil, nil
+            for k, c in ipairs(t) do
+                if c == ret then
+                    idx1 = k
+                elseif c == other then
+                    idx2 = k
+                end
             end
+
+            if not (idx1 and idx2) then return end
+
+            t[idx1], t[idx2] = other, ret
         end
 
-        if not (idx1 and idx2) then return end
-
-        clients[idx1], clients[idx2] = other, ret
         ret:emit_signal("swapped", other, true)
         other:emit_signal("swapped", ret, false)
         client.emit_signal("list")
@@ -412,6 +437,7 @@ function client.gen_fake(args)
 
     -- Add to the client list
     table.insert(clients, ret)
+    table.insert(stacked_clients, 1, ret)
 
     client.focus = ret
 
@@ -430,11 +456,11 @@ function client.gen_fake(args)
                 return properties["set_"..key](self, value)
             end
 
-            if defaults[key] ~= nil then
+            if defaults[key] ~= nil and value ~= defaults[key] then
                 defaults[key] = value
 
                 if restack_needed[key] then
-                    restack(key, self)
+                    restack(key, self, key, value)
                 end
             else
                 meta.__newindex(self, key, value)
@@ -465,20 +491,23 @@ function client.gen_fake(args)
 
     --TODO v6 remove this.
     client.emit_signal("manage", ret)
+    client.emit_signal("request::restack", "append", {client = c})
 
     assert(not args.screen or (args.screen == ret.screen))
 
     return ret
 end
 
-function client.get(s, stacked) --luacheck: no unused args
-    if not s then return clients end
+function client.get(s, stacked)
+    local t = stacked and stacked_clients or clients
+
+    if not s then return t end
 
     local s2 = screen[s]
 
     local ret = {}
 
-    for _,c in ipairs(clients) do
+    for _,c in ipairs(t) do
         if c.screen == s2 then
             table.insert(ret, c)
         end
@@ -486,6 +515,8 @@ function client.get(s, stacked) --luacheck: no unused args
 
     return ret
 end
+
+client.connect_signal("request::apply_stacking", root._set_stacking_order)
 
 return client
 

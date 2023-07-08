@@ -131,26 +131,38 @@ stack_client_above(client_t *c, xcb_window_t previous)
     return previous;
 }
 
-/**
+/*
  * Allow Lua to define the stacking order of clients and wiboxes.
+ *
+ * This is the handler for the `client` "request::apply_stacking" signal.
+ *
+ * The first argument is the `context`, which is unused. The second is the
+ * `hints` table, which contains `content`.
  *
  * The table must contain `client` and `wibox` object. Index `1` is the closest
  * to the root (wallpaper) and the last index is the closest to the top.
- *
- * @staticfct root.set_stacking_order
- * @tparam table stacking_order
  */
 int
 luaA_set_stacking_order(lua_State *L) {
     xcb_window_t next = XCB_NONE;
 
-    if(lua_gettop(L) == 1)
+    if(lua_gettop(L) == 2)
     {
-        luaA_checktable(L, 1);
+        luaA_checktable(L, 2);
+
+        /* Get the `content` argument from the request hints table. */
+        lua_getfield(L, 2, "content");
+
+        if (lua_isnil(L, 3)) {
+            lua_pop(L, 2);
+            return 0;
+        }
+
+        luaA_checktable(L, 3);
 
         lua_pushnil(L);
 
-        while(lua_next(L, 1))
+        while(lua_next(L, 3))
         {
             if (luaA_class_get(L, -1) == &client_class)
             {
@@ -166,10 +178,10 @@ luaA_set_stacking_order(lua_State *L) {
                 luaA_object_unref(L, d);
             }
             else
-                return luaL_error(L, "set_stacking_order only works on clients and drawins");
+                return luaL_error(L, "`request::apply_stacking` only works on clients and drawins");
         }
 
-        lua_pop(L, 1);
+        lua_pop(L, 2);
     }
 
     return 0;

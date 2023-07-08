@@ -983,31 +983,43 @@ lua_class_t client_class;
 /**
  * The client is on top of every other windows.
  *
+ * @DOC_sequences_client_ontop1_EXAMPLE@
+ *
  * @property ontop
  * @tparam[opt=false] boolean ontop
  * @propemits false false
  * @see below
  * @see above
+ * @see raise
+ * @see lower
  */
 
 /**
  * The client is above normal windows.
+ *
+ * @DOC_sequences_client_above1_EXAMPLE@
  *
  * @property above
  * @tparam[opt=false] boolean above
  * @propemits false false
  * @see below
  * @see ontop
+ * @see raise
+ * @see lower
  */
 
 /**
  * The client is below normal windows.
+ *
+ * @DOC_sequences_client_below1_EXAMPLE@
  *
  * @property below
  * @tparam[opt=false] boolean below
  * @propemits false false
  * @see above
  * @see ontop
+ * @see raise
+ * @see lower
  */
 
 /**
@@ -3473,6 +3485,8 @@ luaA_client_get_first_tag(lua_State *L, client_t *c)
 
 /** Raise a client on top of others which are on the same layer.
  *
+ * @DOC_sequences_client_raise1_EXAMPLE@
+ *
  * @method raise
  * @noreturn
  * @emits raised
@@ -3521,6 +3535,8 @@ luaA_client_raise(lua_State *L)
 }
 
 /** Lower a client on bottom of others which are on the same layer.
+ *
+ * @DOC_sequences_client_lower1_EXAMPLE@
  *
  * @method lower
  * @noreturn
@@ -4669,6 +4685,9 @@ client_class_setup(lua_State *L)
         { "get_icon", luaA_client_get_some_icon },
         { NULL, NULL }
     };
+
+    luaA_class_connect_signal(L, &client_class, "request::apply_stacking",
+                              luaA_set_stacking_order);
 
     luaA_class_setup(L, &client_class, "client", &window_class,
                      (lua_class_allocator_t) client_new,

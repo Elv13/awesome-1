@@ -189,8 +189,8 @@ function root._wallpaper(pattern)
     return target
 end
 
-function root._set_stacking_order(order)
-    rawset(root, "_current_stacking_order", order)
+function root._set_stacking_order(_, hints)
+    rawset(root, "_current_stacking_order", hints.content)
 end
 
 function root.set_newindex_miss_handler(h)

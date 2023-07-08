@@ -62,7 +62,7 @@ function module.restack()
     local drawins, clients = capi.drawin.get(), capi.client.get(nil, true)
 
     for _, c in ipairs(clients) do
-          append(c)
+        append(c)
     end
 
     for i=#drawins, 1, -1 do
@@ -79,7 +79,10 @@ function module.restack()
         end
     end
 
-    capi.root._set_stacking_order(result)
+    capi.client.emit_signal("request::apply_stacking", "awful.layout", {
+        content = result
+    })
+
     capi.client.emit_signal("stacking", result)
 end
 

@@ -265,22 +265,6 @@ ewmh_init_lua(void)
     luaA_class_connect_signal(L, &tag_class, "property::selected", ewmh_update_net_current_desktop);
 }
 
-/** Set the client list in stacking order, bottom to top.
- */
-void
-ewmh_update_net_client_list_stacking(void)
-{
-    int n = 0;
-    xcb_window_t *wins = p_alloca(xcb_window_t, globalconf.stack.len);
-
-    foreach(client, globalconf.stack)
-        wins[n++] = (*client)->window;
-
-    xcb_change_property(globalconf.connection, XCB_PROP_MODE_REPLACE,
-			globalconf.screen->root,
-			_NET_CLIENT_LIST_STACKING, XCB_ATOM_WINDOW, 32, n, wins);
-}
-
 void
 ewmh_update_net_numbers_of_desktop(void)
 {

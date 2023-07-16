@@ -171,7 +171,7 @@ function permissions.activate(c, context, hints) -- luacheck: no unused args
 
     if c.focusable == false and not hints.force then
         if hints.raise then
-            c:raise()
+            c:emit_signal("request::raise", context)
         end
 
         return
@@ -205,7 +205,7 @@ function permissions.activate(c, context, hints) -- luacheck: no unused args
     end
 
     if hints.raise then
-        c:raise()
+        c:emit_signal("request::raise", context)
         if not awesome.startup and not c:isvisible() then
             c.urgent = true
         end

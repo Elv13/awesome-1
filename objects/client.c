@@ -1700,23 +1700,53 @@ client_set_motif_wm_hints(lua_State *L, int cidx, motif_wm_hints_t hints)
 void
 client_find_transient_for(client_t *c)
 {
-    int counter;
-    client_t *tc, *tmp;
+    int counter = 0;
+    client_t *tc, *tmp, *tmp_prev;
     lua_State *L = globalconf_get_lua_State();
 
     /* This might return NULL, in which case we unset transient_for */
-    tmp = tc = client_getbywin(c->transient_for_window);
+    tmp_prev = tmp = tc = client_getbywin(c->transient_for_window);
 
-    /* Verify that there are no loops in the transient_for relation after we are done */
-    for(counter = 0; tmp != NULL && counter <= globalconf.stack.len; counter++)
-    {
-        if (tmp == c)
-            /* We arrived back at the client we started from, so there is a loop */
-            counter = globalconf.stack.len+1;
-        tmp = tmp->transient_for;
-    }
+    /* There is a fast O(N) path for normal use and an O(N^2) during
+     * initialization (before the new client is added to the stack).
+     *
+     * The alternative would be to use `request::restack` with `now=true`, but
+     * this prevents the rules from deciding where the new client should be
+     * added to the stack. */
+//     if (globalconf.stack.len == globalconf.clients.len)
+//     {
+//
+//         /* Verify that there are no loops in the transient_for relation after we are done */
+//         for(; tmp != NULL && counter <= globalconf.stack.len; counter++)
+//         {
+//             if (tmp == c)
+//                 /* We arrived back at the client we started from, so there is a loop */
+//                 counter = globalconf.stack.len+1;
+//             tmp = tmp->transient_for;
+//         }
+//     }
+//     else
+//     {
+        while (tmp != NULL)
+        {
+            foreach(c2, globalconf.clients)
+            {
+                if (tmp == (*c2)->transient_for)
+                {
+                    tmp = (*c2)->transient_for;
+                    break;
+                }
+            }
 
-    if (counter > globalconf.stack.len)
+            if (tmp->transient_for == NULL || tmp_prev == tmp)
+                break;
+
+            tmp_prev = tmp;
+            counter++;
+        }
+//     }
+
+    if (counter > globalconf.clients.len) //FIXME, wrong len, need new globalconf int
     {
         /* There was a loop, so unset .transient_for */
         tc = NULL;
@@ -2303,9 +2333,6 @@ client_manage(xcb_window_t w, xcb_get_geometry_reply_t *wgeom, xcb_get_window_at
 
     /* Then check clients hints */
     ewmh_client_check_hints(c);
-
-    /* Push client in stack */
-    stack_client_push(L, c, "manage");
 
     /* Request our response */
     xcb_get_property_reply_t *reply =
@@ -3006,7 +3033,7 @@ client_unmanage(client_t *c, client_unmanage_t reason)
             client_array_remove(&globalconf.clients, elem);
             break;
         }
-    stack_client_remove(L, c, false, "unmanage");
+    //stack_client_remove(L, c, false, "unmanage");
     for(int i = 0; i < globalconf.tags.len; i++)
         untag_client(c, globalconf.tags.tab[i]);
 
@@ -3135,6 +3162,31 @@ client_kill(client_t *c)
         xcb_kill_client(globalconf.connection, c->window);
 }
 
+/* Undocumented helper to avoid the overhead of `#client.get()`.
+ *
+ * The main use case for having this dedicated C helper is the client stacking
+ * code, which "owns" both `globalconf.stack` and `globalconf.clients` ordering.
+ *
+ * @tparam[opt] boolean stacked Return clients in stacking order? (ordered from
+ *   top to bottom).
+ * @treturn integer The number of clients in the main list or in the main stack.
+ */
+static int
+luaA_client_count(lua_State *L)
+{
+    bool stacked = false;
+
+    if(!lua_isnoneornil(L, 1))
+        stacked = luaA_checkboolean(L, 1);
+
+    if (stacked)
+        lua_pushinteger(L, globalconf.clients.len); //FIXME needs new globalconf int
+    else
+        lua_pushinteger(L, globalconf.clients.len);
+
+    return 1;
+}
+
 /** Get all clients into a table.
  *
  * @tparam[opt] integer|screen screen A screen number to filter clients on.
@@ -3160,24 +3212,24 @@ luaA_client_get(lua_State *L)
         stacked = luaA_checkboolean(L, 2);
 
     lua_newtable(L);
-    if(stacked)
-    {
-        foreach_reverse(c, globalconf.stack)
-            if(screen == NULL || (*c)->screen == screen)
+//     if(stacked)
+//     {
+//         foreach_reverse(c, globalconf.stack) //FIXME move client.get to lua
+//             if(screen == NULL || (*c)->screen == screen)
+//             {
+//                 luaA_object_push(L, *c);
+//                 lua_rawseti(L, -2, i++);
+//             }
+//     }
+//     else
+//     {
+        foreach(c2, globalconf.clients)
+            if(screen == NULL || (*c2)->screen == screen)
             {
-                luaA_object_push(L, *c);
+                luaA_object_push(L, *c2);
                 lua_rawseti(L, -2, i++);
             }
-    }
-    else
-    {
-        foreach(c, globalconf.clients)
-            if(screen == NULL || (*c)->screen == screen)
-            {
-                luaA_object_push(L, *c);
-                lua_rawseti(L, -2, i++);
-            }
-    }
+//     }
 
     return 1;
 }
@@ -3479,92 +3531,6 @@ luaA_client_get_first_tag(lua_State *L, client_t *c)
             luaA_object_push(L, *tag);
             return 1;
         }
-
-    return 0;
-}
-
-/** Raise a client on top of others which are on the same layer.
- *
- * @DOC_sequences_client_raise1_EXAMPLE@
- *
- * @method raise
- * @noreturn
- * @emits raised
- * @see above
- * @see below
- * @see ontop
- * @see lower
- */
-static int
-luaA_client_raise(lua_State *L)
-{
-    client_t *c = luaA_checkudata(L, 1, &client_class);
-
-    /* Avoid sending the signal if nothing was done */
-    if (c->transient_for == NULL &&
-        globalconf.stack.len &&
-        globalconf.stack.tab[globalconf.stack.len-1] == c
-    )
-        return 0;
-
-    client_t *tc = c;
-    int counter = 0;
-
-    /* Find number of transient layers. */
-    for(counter = 0; tc->transient_for; counter++)
-        tc = tc->transient_for;
-
-    /* Push them in reverse order. */
-    for(; counter > 0; counter--)
-    {
-        tc = c;
-        for(int i = 0; i < counter; i++)
-            tc = tc->transient_for;
-        stack_client_append(L, tc, "raise");
-    }
-
-    /* Push c on top of the stack. */
-    stack_client_append(L, c, "raise");
-
-    /* Notify the listeners */
-    luaA_object_push(L, c);
-    luaA_object_emit_signal(L, -1, "raised", 0);
-    lua_pop(L, 1);
-
-    return 0;
-}
-
-/** Lower a client on bottom of others which are on the same layer.
- *
- * @DOC_sequences_client_lower1_EXAMPLE@
- *
- * @method lower
- * @noreturn
- * @emits lowered
- * @see above
- * @see below
- * @see ontop
- * @see raise
- */
-static int
-luaA_client_lower(lua_State *L)
-{
-    client_t *c = luaA_checkudata(L, 1, &client_class);
-
-    /* Avoid sending the signal if nothing was done */
-    if (globalconf.stack.len && globalconf.stack.tab[0] == c)
-        return 0;
-
-    stack_client_push(L, c, "lower");
-
-    /* Traverse all transient layers. */
-    for(client_t *tc = c->transient_for; tc; tc = tc->transient_for)
-        stack_client_push(L, tc, "lower");
-
-    /* Notify the listeners */
-    luaA_object_push(L, c);
-    luaA_object_emit_signal(L, -1, "lowered", 0);
-    lua_pop(L, 1);
 
     return 0;
 }
@@ -4659,6 +4625,7 @@ client_class_setup(lua_State *L)
     {
         LUA_CLASS_METHODS(client)
         { "get", luaA_client_get },
+        { "_get_count", luaA_client_count },
         { "__index", luaA_client_module_index },
         { "__newindex", luaA_client_module_newindex },
         { NULL, NULL }
@@ -4675,8 +4642,6 @@ client_class_setup(lua_State *L)
         { "tags", luaA_client_tags },
         { "kill", luaA_client_kill },
         { "swap", luaA_client_swap },
-        { "raise", luaA_client_raise },
-        { "lower", luaA_client_lower },
         { "unmanage", luaA_client_unmanage },
         { "titlebar_top", luaA_client_titlebar_top },
         { "titlebar_right", luaA_client_titlebar_right },

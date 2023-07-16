@@ -23,49 +23,6 @@
 #include "ewmh.h"
 
 void
-stack_client_remove(lua_State *L, client_t *c, bool silent, const char *context)
-{
-    foreach(client, globalconf.stack)
-        if(*client == c)
-        {
-            client_array_remove(&globalconf.stack, client);
-            break;
-        }
-    ewmh_update_net_client_list_stacking();
-
-    if (!silent)
-        stack_windows(L, context, c, NULL);
-}
-
-/** Push the client at the beginning of the client stack.
- * \param L The Lua context.
- * \param c The client to push.
- * \param context An human readable reason of why this was done.
- */
-void
-stack_client_push(lua_State *L, client_t *c, const char *context)
-{
-    stack_client_remove(L, c, true, "");
-    client_array_push(&globalconf.stack, c);
-    ewmh_update_net_client_list_stacking();
-    stack_windows(L, context, c, NULL);
-}
-
-/** Push the client at the end of the client stack.
- * \param L The Lua context.
- * \param c The client to push.
- * \param context An human readable reason of why this was done.
- */
-void
-stack_client_append(lua_State *L, client_t *c, const char *context)
-{
-    stack_client_remove(L, c, true, "");
-    client_array_append(&globalconf.stack, c);
-    ewmh_update_net_client_list_stacking();
-    stack_windows(L, context, c, NULL);
-}
-
-void
 stack_windows(lua_State *L, const char *context, client_t *c, drawin_t *d)
 {
     /* Context */
@@ -122,11 +79,6 @@ stack_client_above(client_t *c, xcb_window_t previous)
     stack_window_above(c->frame_window, previous);
 
     previous = c->frame_window;
-
-    /* stack transient window on top of their parents */
-    foreach(node, globalconf.stack)
-        if((*node)->transient_for == c)
-            previous = stack_client_above(*node, previous);
 
     return previous;
 }

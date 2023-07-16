@@ -36,7 +36,6 @@ void ewmh_update_net_numbers_of_desktop(void);
 int ewmh_update_net_current_desktop(lua_State *);
 void ewmh_update_net_desktop_names(void);
 int ewmh_process_client_message(xcb_client_message_event_t *);
-void ewmh_update_net_client_list_stacking(void);
 void ewmh_client_check_hints(client_t *);
 void ewmh_client_update_desktop(client_t *);
 void ewmh_process_client_strut(client_t *);

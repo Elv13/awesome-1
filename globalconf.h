@@ -139,7 +139,7 @@ typedef struct
     /** Embedded windows */
     xembed_window_array_t embedded;
     /** Stack client history */
-    client_array_t stack;
+//     client_array_t stack;
     /** Lua VM state (opaque to avoid mis-use, see globalconf_get_lua_State()) */
     struct {
         lua_State *real_L_dont_use_directly;

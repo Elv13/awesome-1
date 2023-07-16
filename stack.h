@@ -27,9 +27,6 @@
 
 typedef struct client_t client_t;
 
-void stack_client_remove(lua_State *, client_t *, bool, const char *);
-void stack_client_push(lua_State *, client_t *, const char *);
-void stack_client_append(lua_State *, client_t *, const char *);
 void stack_windows(lua_State *, const char *, client_t *, drawin_t *);
 int luaA_set_stacking_order(lua_State *);
 

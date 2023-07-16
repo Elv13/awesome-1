@@ -115,7 +115,7 @@ awesome_atexit(bool restart)
     signal_object_emit(L, &global_signals, "exit", 1);
 
     /* Move clients where we want them to be and keep the stacking order intact */
-    foreach(c, globalconf.stack)
+    foreach(c, globalconf.clients) //FIXME
     {
         area_t geometry = client_get_undecorated_geometry(*c);
         xcb_reparent_window(globalconf.connection, (*c)->window, globalconf.screen->root,

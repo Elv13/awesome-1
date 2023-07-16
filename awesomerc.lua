@@ -281,7 +281,7 @@ awful.keyboard.append_global_keybindings({
         function ()
             awful.client.focus.history.previous()
             if client.focus then
-                client.focus:raise()
+                client.focus:raise { context = "cycle" }
             end
         end,
         {description = "go back", group = "client"}),
@@ -418,7 +418,7 @@ client.connect_signal("request::default_keybindings", function()
         awful.key({ modkey,           }, "f",
             function (c)
                 c.fullscreen = not c.fullscreen
-                c:raise()
+                c:raise { context = "fullscreen" }
             end,
             {description = "toggle fullscreen", group = "client"}),
         awful.key({ modkey, "Shift"   }, "c",      function (c) c:kill()                         end,
@@ -441,19 +441,19 @@ client.connect_signal("request::default_keybindings", function()
         awful.key({ modkey,           }, "m",
             function (c)
                 c.maximized = not c.maximized
-                c:raise()
+                c:raise { context = "maximize" }
             end ,
             {description = "(un)maximize", group = "client"}),
         awful.key({ modkey, "Control" }, "m",
             function (c)
                 c.maximized_vertical = not c.maximized_vertical
-                c:raise()
+                c:raise { context = "maximize_vertical" }
             end ,
             {description = "(un)maximize vertically", group = "client"}),
         awful.key({ modkey, "Shift"   }, "m",
             function (c)
                 c.maximized_horizontal = not c.maximized_horizontal
-                c:raise()
+                c:raise { context = "maximize_horizontal" }
             end ,
             {description = "(un)maximize horizontally", group = "client"}),
     })

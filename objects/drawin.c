@@ -176,6 +176,12 @@ luaA_drawin_systray_kickout(lua_State *L)
 static void
 drawin_wipe(drawin_t *w)
 {
+    /* Notify the Lua side about the deletion */
+    //lua_State *L = globalconf_get_lua_State();
+    //luaA_object_push(L, w);
+    //lua_pushstring(L, "gc");
+    //luaA_object_emit_signal(L, -2, "request::unmanage", 2);
+
     /* The drawin must already be unmapped, else it
      * couldn't be garbage collected -> no unmap needed */
     p_delete(&w->cursor);

@@ -497,6 +497,14 @@ function module.extra_properties.placement(c, value, props)
     end
 end
 
+function module.extra_properties.raise(c, value, props)
+    c:emit_signal("request::raise", "rules")
+end
+
+function module.extra_properties.lower(c, value, props)
+    c:emit_signal("request::lower", "rules")
+end
+
 function module.high_priority_properties.tags(c, value, props)
     local current = c:tags()
 

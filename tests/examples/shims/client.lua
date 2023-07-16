@@ -516,6 +516,10 @@ function client.get(s, stacked)
     return ret
 end
 
+function client._get_count(stacked)
+    return #(stacked and stacked_clients or clients)
+end
+
 client.connect_signal("request::apply_stacking", root._set_stacking_order)
 
 return client

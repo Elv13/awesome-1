@@ -1549,6 +1549,59 @@ function client.run_or_raise(cmd, matcher, merge)
     end
 end
 
+--- Emitted when the client needs to be raised.
+-- @signal request::raise
+
+--- Raise a client on top of others which are on the same layer.
+--
+-- @DOC_sequences_client_raise1_EXAMPLE@
+--
+-- @method raise
+-- @tparam[opt={}] table args The arguments.
+-- @tparam[opt=nil] string args.context Why is the client being raised. Set
+-- this if  you use `:raise{}` from a script or another function. This will be
+-- used by the permission system to filter the request.
+-- @noreturn
+-- @emits raised
+-- @emits request::raise
+-- @emitstparam request::raise client c The client to raise.
+-- @emitstparam request::raise string context The value of `args.context` or
+--  `"other"`.
+-- @emitstparam request::raise table hints The input `args` (unmodified).
+-- @see above
+-- @see below
+-- @see ontop
+-- @see lower
+function client.object.raise(self, args)
+    args = args or {}
+    self:emit_signal("request::raise", args.context or "other", args)
+end
+
+--- Lower a client on bottom of others which are on the same layer.
+--
+-- @DOC_sequences_client_lower1_EXAMPLE@
+--
+-- @method lower
+-- @tparam[opt={}] table args The arguments.
+-- @tparam[opt=nil] string args.context Why is the client being lowered. Set
+-- this if  you use `:lower{}` from a script or another function. This will be
+-- used by the permission system to filter the request.
+-- @noreturn
+-- @emits lowered
+-- @emits request::lower
+-- @emitstparam request::lower client c The client to lower.
+-- @emitstparam request::lower string context The value of `args.context` or
+--  `"other"`.
+-- @emitstparam request::lower table hints The input `args` (unmodified).
+-- @see above
+-- @see below
+-- @see ontop
+-- @see raise
+function client.object.lower(self, args)
+    args = args or {}
+    self:emit_signal("request::lower", args.context or "other", args)
+end
+
 --- Get a matching transient_for client (if any).
 -- @deprecated awful.client.get_transient_for_matching
 -- @see client.get_transient_for_matching

@@ -275,26 +275,6 @@ function client.gen_fake(args)
         end
     end
 
-    function ret:raise()
-        for _, t in ipairs { clients, stacked_clients } do
-            remove_from_table(t)
-        end
-
-        table.insert(clients, ret)
-        table.insert(stacked_clients, 1, ret)
-        restack(ret, "raise")
-    end
-
-    function ret:lower()
-        for _, t in ipairs { clients, stacked_clients } do
-            remove_from_table(t)
-        end
-
-        table.insert(clients, 1, ret)
-        table.insert(stacked_clients, ret)
-        restack(ret, "lower")
-    end
-
     function ret:apply_size_hints(w, h)
         return w or ret.width, h or ret.height
     end

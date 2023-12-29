@@ -8,6 +8,9 @@ local beautiful  = require( "beautiful"       )
 local wibox      = require( "wibox"           )
 local screenshot = require( "awful.screenshot")
 
+-- Required to generate the z-index for the wibox and clients.
+require("awful.layout._stacking")
+
 local function wrap_titlebar(tb, width, height, args)
     local bg, fg
 
@@ -126,6 +129,7 @@ local args = loadfile(file_path)() or {}
 -- Emulate the event loop for 5 iterations
 for _ = 1, 5 do
     require("gears.timer").run_delayed_calls_now()
+    awesome.emit_signal("refresh")
 end
 
 -- Draw the result
@@ -224,63 +228,78 @@ end
 -- Emulate the event loop for another 5 iterations
 for _ = 1, 5 do
     require("gears.timer").run_delayed_calls_now()
+    awesome.emit_signal("refresh")
 end
 
-for _, d in ipairs(drawin.get()) do
-    local w = d.get_wibox and d:get_wibox() or nil
-    if w and w.visible then
-        local geo = w:geometry()
-        total_area:add_at(w:to_widget(), {x = geo.x, y = geo.y})
+-- Detect if `request::restack` is missing.
+assert(#(root._current_stacking_order or {}) == #drawin.get() + #client.get())
+
+-- There are cases where `request::restack` is never sent.
+if not root._current_stacking_order then
+    for _, d in ipairs(drawin.get()) do
+        local w = d.get_wibox and d:get_wibox() or nil
+        if w and w.visible then
+            local geo = w:geometry()
+            total_area:add_at(w:to_widget(), {x = geo.x, y = geo.y})
+        end
     end
 end
 
 -- Loop each clients geometry history and paint it
-for _, c in ipairs(client.get()) do
+for _, c in ipairs(root._current_stacking_order or client.get()) do
+    if not c.tags then
+        -- This is a wibox.
+        local w = c.get_wibox and c:get_wibox() or nil
+        if w and w.visible then
+            local geo = w:geometry()
+            total_area:add_at(w:to_widget(), {x = geo.x, y = geo.y})
+        end
+    else
+        local is_displayed = false
 
-    local is_displayed = false
+        for _, t in pairs(c:tags()) do
+            is_displayed = is_displayed or t.selected
+        end
 
-    for _, t in pairs(c:tags()) do
-        is_displayed = is_displayed or t.selected
-    end
+        if (not c.minimized) and is_displayed then
+            local pgeo = nil
+            for _, geo in ipairs(c._old_geo) do
+                if not geo._hide then
+                    total_area:add_at(
+                        client_widget(c, c.color or geo._color or beautiful.bg_normal, geo._label, args),
+                        {x=geo.x, y=geo.y}
+                    )
+                end
 
-    if (not c.minimized) and is_displayed then
-        local pgeo = nil
-        for _, geo in ipairs(c._old_geo) do
-            if not geo._hide then
-                total_area:add_at(
-                    client_widget(c, c.color or geo._color or beautiful.bg_normal, geo._label, args),
-                    {x=geo.x, y=geo.y}
-                )
+                -- Draw lines between the old and new corners
+                if pgeo and not args.hide_lines then
+                    cr:save()
+                    cr:set_source_rgba(0,0,0,.1)
+
+                    -- Top left
+                    cr:move_to(pgeo.x, pgeo.y)
+                    cr:line_to(geo.x, geo.y)
+                    cr:stroke()
+
+                    -- Top right
+                    cr:move_to(pgeo.x+pgeo.width, pgeo.y)
+                    cr:line_to(geo.x+pgeo.width, geo.y)
+
+                    -- Bottom left
+                    cr:move_to(pgeo.x, pgeo.y+pgeo.height)
+                    cr:line_to(geo.x, geo.y+geo.height)
+                    cr:stroke()
+
+                    -- Bottom right
+                    cr:move_to(pgeo.x+pgeo.width, pgeo.y+pgeo.height)
+                    cr:line_to(geo.x+pgeo.width, geo.y+geo.height)
+                    cr:stroke()
+
+                    cr:restore()
+                end
+
+                pgeo = geo
             end
-
-            -- Draw lines between the old and new corners
-            if pgeo and not args.hide_lines then
-                cr:save()
-                cr:set_source_rgba(0,0,0,.1)
-
-                -- Top left
-                cr:move_to(pgeo.x, pgeo.y)
-                cr:line_to(geo.x, geo.y)
-                cr:stroke()
-
-                -- Top right
-                cr:move_to(pgeo.x+pgeo.width, pgeo.y)
-                cr:line_to(geo.x+pgeo.width, geo.y)
-
-                -- Bottom left
-                cr:move_to(pgeo.x, pgeo.y+pgeo.height)
-                cr:line_to(geo.x, geo.y+geo.height)
-                cr:stroke()
-
-                -- Bottom right
-                cr:move_to(pgeo.x+pgeo.width, pgeo.y+pgeo.height)
-                cr:line_to(geo.x+pgeo.width, geo.y+geo.height)
-                cr:stroke()
-
-                cr:restore()
-            end
-
-            pgeo = geo
         end
     end
 end

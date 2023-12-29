@@ -13,7 +13,10 @@ local deprecated = {
 }
 
 local ret = {
+    -- `client` and `tree` have to be high up because they connect to
+    -- class signals and act upon them.
     client = require("awful.client");
+    tree = require("awful.tree");
     completion = require("awful.completion");
     layout = require("awful.layout");
     placement = require("awful.placement");

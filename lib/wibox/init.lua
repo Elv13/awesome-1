@@ -413,6 +413,8 @@ local function new(args)
     -- Make sure all signals bubble up
     ret:_connect_everything(wibox.emit_signal)
 
+    ret:emit_signal("request::manage", "new", {})
+
     return ret
 end
 

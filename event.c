@@ -824,7 +824,7 @@ event_handle_maprequest(xcb_map_request_event_t *ev)
     else if((c = client_getbywin(ev->window)))
     {
         /* Check that it may be visible, but not asked to be hidden */
-        if(client_on_selected_tags(c) && !c->hidden)
+        if(client_on_selected_tags(c) && c->visibility_override != CLIENT_VISIBILITY_HIDDEN)
         {
             lua_State *L = globalconf_get_lua_State();
             luaA_object_push(L, c);

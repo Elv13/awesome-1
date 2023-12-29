@@ -492,7 +492,7 @@ lua_class_t client_class;
  * @tparam[opt=false] boolean skip_taskbar
  * @propemits false false
  * @see sticky
- * @see hidden
+ * @see visible
  * @see unmanage
  */
 
@@ -735,12 +735,15 @@ lua_class_t client_class;
 /**
  * Define if the client must be hidden (Never mapped, invisible in taskbar).
  *
- * @property hidden
+ * Use `visible`.
+ *
+ * @deprecatedproperty hidden
  * @tparam[opt=false] boolean hidden
  * @propemits false false
  * @see minimized
  * @see skip_taskbar
  * @see unmanage
+ * @see visible
  */
 
 /**
@@ -757,8 +760,7 @@ lua_class_t client_class;
  * @property minimized
  * @tparam[opt=false] boolean minimized
  * @propemits false false
- * @see hidden
- * @see isvisible
+ * @see visible
  * @see activate
  */
 
@@ -1445,6 +1447,54 @@ lua_class_t client_class;
  * @propemits false false
  * @readonly
  * @see kill
+ */
+
+
+/**
+ * Return if the client is visible or not.
+ *
+ * By default, this is managed automatically.
+ *
+ * @property visible
+ * @tparam boolean|nil visible
+ * @propertydefault Returns `true` if the client is currently visible.
+ * @propertytype boolean Force the client to be visible or hidden.
+ * @propertytype nil Let AwesomeWM manage the visibility using `tags`.
+ * @propemits false false
+ * @see sticky
+ * @see minimized
+ * @see visibility_reason
+ */
+
+/**
+ * Why is a client visible or hidden.
+ *
+ * Note that multiple reasons can be true at the same time. If this is the
+ * case, which of the reason is returned is an implementation detail and might
+ * change in future releases.
+ *
+ * @property visibility_reason
+ * @tparam string visibility_reason
+ * @readonly
+ * @propertydefault This is linked to many other properties like `minimized`,
+ *  `sticky` and `hidden`.
+ * @propertyvalue "shown_property" When the client is *visible* because the
+ *   `visible` property is manually set to `true`.
+ * @propertyvalue "tagged" When the client is *visible* because it is tagged to
+ *  a visible tag.
+ * @propertyvalue "sticky" When the client is *visible* because the `sticky`
+ *   property is `true`.
+ * @propertyvalue "hidden_property" When the client is *hidden* because the
+ *   `visible` property is set to `false`.
+ * @propertyvalue "minimixed"  When the client is *hidden* because the
+ *  `minimixed` is set to `true`.
+ * @propertyvalue "untagged"  When the client is *hidden* because it isn't
+ *  attached to a visible tag.
+ * @propertyvalue "tree_node_override_show"
+ * @propertyvalue "tree_node_override_hide"
+ * @see sticky
+ * @see minimized
+ * @see visible
  */
 
 /**
@@ -2621,13 +2671,13 @@ client_set_minimized(lua_State *L, int cidx, bool s)
  * \param s Set or not the client hidden.
  */
 static void
-client_set_hidden(lua_State *L, int cidx, bool s)
+client_set_hidden(lua_State *L, int cidx, client_visibility_t visibility)
 {
     client_t *c = luaA_checkudata(L, cidx, &client_class);
 
-    if(c->hidden != s)
+    if(c->visibility_override != (char) visibility)
     {
-        c->hidden = s;
+        c->visibility_override = visibility;
         banning_need_update();
         if(strut_has_value(&c->strut))
             screen_update_workarea(c->screen);
@@ -2907,7 +2957,7 @@ client_unban(client_t *c)
         /* An unbanned client shouldn't be minimized or hidden */
         luaA_object_push(L, c);
         client_set_minimized(L, -1, false);
-        client_set_hidden(L, -1, false);
+        client_set_hidden(L, -1, CLIENT_VISIBILITY_DEFAULT);
         lua_pop(L, 1);
 
         if (globalconf.focus.client == c)
@@ -3114,17 +3164,52 @@ luaA_client_get(lua_State *L)
     return 1;
 }
 
+static int
+luaA_client_get_visible(lua_State *L, client_t *c)
+{
+    lua_pushboolean(L, client_isvisible(c));
+    return 1;
+}
+
+static int
+luaA_client_set_visible(lua_State *L, client_t *c)
+{
+    if (globalconf.api_level > 4)
+        luaA_deprecate(L, "Use `c.visible` instead of `c.hidden`.");
+
+    char vis;
+
+    if (lua_isnil(L, 1))
+        vis = CLIENT_VISIBILITY_DEFAULT;
+    else
+        vis = luaA_checkboolean(L, -1) ?
+            CLIENT_VISIBILITY_SHOWN : CLIENT_VISIBILITY_HIDDEN;
+
+    if (vis == c->visibility_override)
+        return 0;
+
+    c->visibility_override = vis;
+
+    return 0;
+}
+
 /** Check if a client is visible on its screen.
  *
+ * Use `visible`.
+ *
  * @treturn boolean A boolean value, true if the client is visible, false otherwise.
- * @method isvisible
+ * @deprecatedmethod isvisible
+ * @see visible
  */
 static int
 luaA_client_isvisible(lua_State *L)
 {
+    if (globalconf.api_level > 4)
+        luaA_deprecate(L, "Use `c.visible` instead of `c:isvisible()`");
+
     client_t *c = luaA_checkudata(L, 1, &client_class);
-    lua_pushboolean(L, client_isvisible(c));
-    return 1;
+
+    return luaA_client_get_visible(L, c);
 }
 
 /** Set client icons.
@@ -3438,6 +3523,40 @@ luaA_client_lower(lua_State *L)
     lua_pop(L, 1);
 
     return 0;
+}
+
+static int
+luaA_client_get_visibility_reason(lua_State *L, client_t *c)
+{
+    switch (client_visibility_state(c))
+    {
+    case CLIENT_VISIBILITY_SHOWN_TAGGED:
+        lua_pushstring(L, "tagged");
+        break;
+    case CLIENT_VISIBILITY_SHOWN_STICKY:
+        lua_pushstring(L, "sticky");
+        break;
+    case CLIENT_VISIBILITY_SHOWN_BY_NODE:
+        lua_pushstring(L, "tree_node_override_show");
+        break;
+    case CLIENT_VISIBILITY_HIDDEN_PROPERTY:
+        lua_pushstring(L, "hidden_property");
+        break;
+    case CLIENT_VISIBILITY_SHOWN_PROPERTY:
+        lua_pushstring(L, "shown_property");
+        break;
+    case CLIENT_VISIBILITY_HIDDEN_MINIMIZED:
+        lua_pushstring(L, "minimixed");
+        break;
+    case CLIENT_VISIBILITY_HIDDEN_UNTAGGED:
+        lua_pushstring(L, "untagged");
+        break;
+    case CLIENT_VISIBILITY_HIDDEN_BY_NODE:
+        lua_pushstring(L, "tree_node_override_hide");
+        break;
+    };
+
+    return 1;
 }
 
 /** Stop managing a client.
@@ -3758,8 +3877,18 @@ luaA_client_set_screen(lua_State *L, client_t *c)
 }
 
 static int
+luaA_client_get_hidden(lua_State *L, client_t *c)
+{
+    lua_pushboolean(L, client_isvisible(c));
+    return 1;
+}
+
+static int
 luaA_client_set_hidden(lua_State *L, client_t *c)
 {
+    if (globalconf.api_level > 4)
+        luaA_deprecate(L, "Use `c.visible` instead of `c.hidden`.");
+
     client_set_hidden(L, -3, luaA_checkboolean(L, -1));
     return 0;
 }
@@ -3921,7 +4050,6 @@ LUA_OBJECT_EXPORT_PROPERTY(client, client_t, skip_taskbar, lua_pushboolean)
 LUA_OBJECT_EXPORT_PROPERTY(client, client_t, leader_window, lua_pushinteger)
 LUA_OBJECT_EXPORT_PROPERTY(client, client_t, group_window, lua_pushinteger)
 LUA_OBJECT_EXPORT_OPTIONAL_PROPERTY(client, client_t, pid, lua_pushinteger, 0)
-LUA_OBJECT_EXPORT_PROPERTY(client, client_t, hidden, lua_pushboolean)
 LUA_OBJECT_EXPORT_PROPERTY(client, client_t, minimized, lua_pushboolean)
 LUA_OBJECT_EXPORT_PROPERTY(client, client_t, fullscreen, lua_pushboolean)
 LUA_OBJECT_EXPORT_PROPERTY(client, client_t, modal, lua_pushboolean)
@@ -4677,6 +4805,14 @@ client_class_setup(lua_State *L)
                             NULL,
                             (lua_class_propfunc_t) luaA_client_get_first_tag,
                             NULL);
+    luaA_class_add_property(&client_class, "visibility_reason",
+                            NULL,
+                            (lua_class_propfunc_t) luaA_client_get_visibility_reason,
+                            NULL);
+    luaA_class_add_property(&client_class, "visible",
+                            (lua_class_propfunc_t) luaA_client_set_visible,
+                            (lua_class_propfunc_t) luaA_client_get_visible,
+                            (lua_class_propfunc_t) luaA_client_set_visible);
 }
 
 /* @DOC_cobject_COMMON@ */

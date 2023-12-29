@@ -55,6 +55,35 @@ typedef enum {
     CLIENT_UNMANAGE_FAILED = 4
 } client_unmanage_t;
 
+/**
+ * Why is the client shown or hidden.
+ */
+typedef enum {
+    /* Positive for visible */
+    CLIENT_VISIBILITY_SHOWN_PROPERTY = 1,
+    CLIENT_VISIBILITY_SHOWN_TAGGED = 2,
+    CLIENT_VISIBILITY_SHOWN_STICKY = 3,
+    CLIENT_VISIBILITY_SHOWN_BY_NODE = 4,
+
+    /* Negative for invisible */
+    CLIENT_VISIBILITY_HIDDEN_PROPERTY = -1,
+    CLIENT_VISIBILITY_HIDDEN_MINIMIZED = -2,
+    CLIENT_VISIBILITY_HIDDEN_UNTAGGED = -3,
+    CLIENT_VISIBILITY_HIDDEN_BY_NODE = -4,
+} client_visibility_reason_t;
+
+/**
+ * When the `visible` property is set manually.
+ *
+ * This replaces a the old `hidden` property to unify the client and wibox
+ * APIs into something more interchangeable.
+ */
+typedef enum {
+    CLIENT_VISIBILITY_DEFAULT = 0,
+    CLIENT_VISIBILITY_SHOWN = 1,
+    CLIENT_VISIBILITY_HIDDEN = 2,
+} client_visibility_t;
+
 /* Special bit we invented to "fake" unset hints */
 #define MWM_HINTS_AWESOME_SET   (1L << 15)
 
@@ -123,7 +152,7 @@ struct client_t
     /** Has urgency hint */
     bool urgent;
     /** True if the client is hidden */
-    bool hidden;
+    signed char visibility_override;
     /** True if the client is minimized */
     bool minimized;
     /** True if the client is fullscreen */
@@ -306,16 +335,32 @@ client_isfixed(client_t *c)
             && c->size_hints_honor);
 }
 
+static inline client_visibility_reason_t
+client_visibility_state(client_t *c)
+{
+    if (c->visibility_override == CLIENT_VISIBILITY_HIDDEN)
+        return CLIENT_VISIBILITY_HIDDEN_PROPERTY;
+    else if (c->visibility_override == CLIENT_VISIBILITY_SHOWN)
+        return CLIENT_VISIBILITY_SHOWN_PROPERTY;
+    else if (c->minimized)
+        return CLIENT_VISIBILITY_HIDDEN_MINIMIZED;
+    else if (c->minimized)
+        return CLIENT_VISIBILITY_SHOWN_STICKY;
+    else if (client_on_selected_tags(c))
+        return CLIENT_VISIBILITY_SHOWN_TAGGED;
+    else
+        return CLIENT_VISIBILITY_HIDDEN_UNTAGGED;
+}
+
 /** Returns true if a client is tagged with one of the tags of the
  * specified screen and is not hidden. Note that "banned" clients are included.
  * \param c The client to check.
- * \param screen Virtual screen number.
  * \return true if the client is visible, false otherwise.
  */
 static inline bool
 client_isvisible(client_t *c)
 {
-    return (!c->hidden && !c->minimized && client_on_selected_tags(c));
+    return client_visibility_state(c) > 0;
 }
 
 #endif

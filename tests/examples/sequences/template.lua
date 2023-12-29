@@ -5,7 +5,7 @@
 
 local file_path, image_path = ...
 require("_common_template")(...)
-local capi = {client = client, screen = screen}
+local capi = {client = client, screen = screen, awesome = awesome}
 local Pango = require("lgi").Pango
 local cairo = require("lgi").cairo
 local PangoCairo = require("lgi").PangoCairo
@@ -15,9 +15,11 @@ local floating_l = require("awful.layout.suit.floating")
 local taglist = require("awful.widget.taglist")
 local gtable = require("gears.table")
 local shape = require("gears.shape")
+local gstring = require("gears.string")
 local color = require("gears.color")
 local wibox = require("wibox")
 local beautiful = require("beautiful")
+local projection = require("_3d_projection")
 
 local bar_size, radius = 18, 2
 local screen_scale_factor = 5
@@ -720,9 +722,17 @@ local function gen_timeline(args)
         local ret = event.callback()
         require("gears.timer").run_delayed_calls_now()
         if event.event == "event" then
+            local lines = gstring.split(event.description, "\n")
+
+            local markup = "<u><b>"..lines[1].."</b></u>"
+
+            if #lines > 1 then
+                markup = markup .. "\n<i>" .. event.description:sub(#lines[1]+1) .. "</i>"
+            end
+
             l:add(wrap_timeline(gen_vertical_space(5)))
             l:add(wrap_timeline(wibox.widget {
-                markup = "<u><b>"..event.description.."</b></u>",
+                markup = markup,
                 widget = wibox.widget.textbox
             }, true))
         elseif event.event == "tags" and #ret == 1 and not args.display_screen then
@@ -730,6 +740,8 @@ local function gen_timeline(args)
         elseif event.event == "tags" and (#ret > 1 or args.display_screen) then
             gen_screens(l, ret, args)
         elseif event.event == "widget" then
+            l:add(wrap_timeline(ret))
+        elseif event.event == "stack" then
             l:add(wrap_timeline(ret))
         end
     end
@@ -854,6 +866,22 @@ function module.display_tags()
     end
 
     table.insert(history, {event="tags", callback = do_it})
+end
+
+function module.display_stacking(args)
+    local function do_it()
+        -- Make sure the layout and stacking code gets executed.
+        for _=1, 3 do
+            capi.awesome.emit_signal("refresh")
+        end
+
+        local clients = rawget(root, "_current_stacking_order")
+        assert(clients)
+
+        return projection(gtable.join({clients = clients}, args or {}))
+    end
+
+    table.insert(history, {event="stack", callback = do_it})
 end
 
 function module.add_event(description, callback)

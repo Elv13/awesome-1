@@ -177,6 +177,19 @@ function permissions.activate(c, context, hints) -- luacheck: no unused args
         return
     end
 
+    local activated = client.focus
+
+    -- Raise the modal group as a whole rather than `c`. Also don't try to give
+    -- `c` the focus, it cannot get it as long as it has a modal dialog in
+    -- front.
+    if activated and activated:is_transient_for(c) then
+        if hints.raise then
+            c:emit_signal("request::raise", context)
+        end
+
+        return
+    end
+
     local found, ret = false
 
     -- Execute the filters until something handle the request

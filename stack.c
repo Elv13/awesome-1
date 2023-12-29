@@ -20,6 +20,7 @@
  */
 
 #include "stack.h"
+#include "objects/window.h"
 #include "ewmh.h"
 
 void
@@ -50,24 +51,6 @@ stack_windows(lua_State *L, const char *context, client_t *c, drawin_t *d)
     luaA_class_emit_signal(L, &client_class, "request::restack", 2);
 }
 
-/** Stack a window above another window, without causing errors.
- * \param w The window.
- * \param previous The window which should be below this window.
- */
-static void
-stack_window_above(xcb_window_t w, xcb_window_t previous)
-{
-    if (previous == XCB_NONE)
-        /* This would cause an error from the X server. Also, if we really
-         * changed the stacking order of all windows, they'd all have to redraw
-         * themselves. Doing it like this is better. */
-        return;
-
-    xcb_configure_window(globalconf.connection, w,
-                         XCB_CONFIG_WINDOW_SIBLING | XCB_CONFIG_WINDOW_STACK_MODE,
-                         (uint32_t[]) { previous, XCB_STACK_MODE_ABOVE });
-}
-
 /** Stack a client above.
  * \param c The client.
  * \param previous The previous client on the stack.
@@ -76,7 +59,7 @@ stack_window_above(xcb_window_t w, xcb_window_t previous)
 static xcb_window_t
 stack_client_above(client_t *c, xcb_window_t previous)
 {
-    stack_window_above(c->frame_window, previous);
+    window_stack_above(c->frame_window, previous);
 
     previous = c->frame_window;
 
@@ -125,7 +108,7 @@ luaA_set_stacking_order(lua_State *L) {
             else if (luaA_class_get(L, -1) == &drawin_class)
             {
                 drawin_t *d = luaA_object_ref_class(L, -1, &drawin_class);
-                stack_window_above(d->window, next);
+                //window_stack_above(d->window, next);
                 next = d->window;
                 luaA_object_unref(L, d);
             }

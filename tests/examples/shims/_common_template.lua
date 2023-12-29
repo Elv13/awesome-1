@@ -9,7 +9,7 @@ return function(_, _)
 
     -- Set the global shims
     -- luacheck: globals awesome root tag screen client mouse drawin button
-    -- luacheck: globals mousegrabber keygrabber dbus key
+    -- luacheck: globals mousegrabber keygrabber dbus key _tree_node
     awesome      = require( "awesome"      )
     root         = require( "root"         )
     tag          = require( "tag"          )
@@ -22,6 +22,7 @@ return function(_, _)
     mousegrabber = require( "mousegrabber" )
     dbus         = require( "dbus"         )
     key          = require( "key"          )
+    _tree_node   = require( "_tree_node"   )
 
     -- Force luacheck to be silent about setting those as unused globals
     assert(awesome and root and tag and screen and client and mouse)

@@ -176,6 +176,10 @@ luaA_drawin_systray_kickout(lua_State *L)
 static void
 drawin_wipe(drawin_t *w)
 {
+    /* Notify the trees about the deletion */
+    lua_State *L = globalconf_get_lua_State();
+    tree_node_unlink_drawin(L, w);
+
     /* The drawin must already be unmapped, else it
      * couldn't be garbage collected -> no unmap needed */
     p_delete(&w->cursor);
@@ -425,6 +429,7 @@ drawin_allocator(lua_State *L)
     w->geometry.width = 1;
     w->geometry.height = 1;
     w->geometry_dirty = false;
+    w->tree_nodes = NULL;
     w->type = _NET_WM_WINDOW_TYPE_NORMAL;
 
     drawable_allocator(L, (drawable_refresh_callback *) drawin_refresh_pixmap, w);

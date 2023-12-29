@@ -545,4 +545,22 @@ window_class_setup(lua_State *L)
                             (lua_class_propfunc_t) luaA_window_set_border_width);
 }
 
+/** Stack a window above another window, without causing errors.
+ * \param w The window.
+ * \param previous The window which should be below this window.
+ */
+void
+window_stack_above(xcb_window_t w, xcb_window_t previous)
+{
+    if (previous == XCB_NONE)
+        /* This would cause an error from the X server. Also, if we really
+         * changed the stacking order of all windows, they'd all have to redraw
+         * themselves. Doing it like this is better. */
+        return;
+
+    xcb_configure_window(globalconf.connection, w,
+                         XCB_CONFIG_WINDOW_SIBLING | XCB_CONFIG_WINDOW_STACK_MODE,
+                         (uint32_t[]) { previous, XCB_STACK_MODE_ABOVE });
+}
+
 // vim: filetype=c:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:textwidth=80

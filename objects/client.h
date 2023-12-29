@@ -24,6 +24,7 @@
 
 #include "stack.h"
 #include "objects/window.h"
+#include "objects/tree_node.h"
 
 #define CLIENT_SELECT_INPUT_EVENT_MASK (XCB_EVENT_MASK_STRUCTURE_NOTIFY \
                                         | XCB_EVENT_MASK_PROPERTY_CHANGE \
@@ -224,6 +225,9 @@ struct client_t
     } titlebar[CLIENT_TITLEBAR_COUNT];
     /** Motif WM hints, with an additional MWM_HINTS_AWESOME_SET bit */
     motif_wm_hints_t motif_wm_hints;
+
+    /* Keep track of every tree_node which hold a `client_t` pointer to self */
+    tree_node_t *tree_nodes;
 };
 
 ARRAY_FUNCS(client_t *, client, DO_NOTHING)
@@ -286,6 +290,7 @@ void client_emit_scanning(void);
 drawable_t *client_get_drawable(client_t *, int, int);
 drawable_t *client_get_drawable_offset(client_t *, int *, int *);
 area_t client_get_undecorated_geometry(client_t *);
+area_t client_apply_size_hints(client_t *, area_t);
 
 /** Put client on top of the stack.
  * \param c The client to raise.

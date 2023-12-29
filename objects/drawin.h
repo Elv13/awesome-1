@@ -25,6 +25,7 @@
 
 #include "objects/window.h"
 #include "objects/drawable.h"
+#include "objects/tree_node.h"
 
 /** Drawin type */
 struct drawin_t
@@ -42,12 +43,16 @@ struct drawin_t
     area_t geometry;
     /** Do we have a pending geometry change that still needs to be applied? */
     bool geometry_dirty;
+
+    /* Keep track of every tree_node which hold a `client_t` pointer to self */
+    tree_node_t *tree_nodes;
 };
 
 ARRAY_FUNCS(drawin_t *, drawin, DO_NOTHING)
 
 drawin_t * drawin_getbywin(xcb_window_t);
 void drawin_refresh_pixmap_partial(drawin_t *, int16_t, int16_t, uint16_t, uint16_t);
+void drawin_moveresize(lua_State *L, int udx, area_t geometry);
 void luaA_drawin_systray_kickout(lua_State *);
 
 void drawin_class_setup(lua_State *);

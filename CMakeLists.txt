@@ -94,6 +94,7 @@ set(AWE_SRCS
     ${BUILD_DIR}/objects/selection_watcher.c
     ${BUILD_DIR}/objects/tag.c
     ${BUILD_DIR}/objects/selection_getter.c
+    ${BUILD_DIR}/objects/tree_node.c
     ${BUILD_DIR}/objects/window.c)
 
 set(AWE_MAN_SRCS

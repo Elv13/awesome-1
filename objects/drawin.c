@@ -425,6 +425,7 @@ drawin_allocator(lua_State *L)
     w->geometry.width = 1;
     w->geometry.height = 1;
     w->geometry_dirty = false;
+    w->tree_nodes = NULL;
     w->type = _NET_WM_WINDOW_TYPE_NORMAL;
 
     drawable_allocator(L, (drawable_refresh_callback *) drawin_refresh_pixmap, w);

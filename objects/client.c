@@ -93,6 +93,7 @@
 #include "ewmh.h"
 #include "objects/drawable.h"
 #include "objects/screen.h"
+#include "objects/tree_node.h"
 #include "objects/tag.h"
 #include "property.h"
 #include "spawn.h"
@@ -2188,6 +2189,7 @@ client_manage(xcb_window_t w, xcb_get_geometry_reply_t *wgeom, xcb_get_window_at
     client_t *c = client_new(L);
     xcb_screen_t *s = globalconf.screen;
     c->border_width_callback = (void (*) (void *, uint16_t, uint16_t)) border_width_callback;
+    c->tree_nodes = NULL;
 
     /* consider the window banned */
     c->isbanned = true;
@@ -2400,7 +2402,7 @@ client_send_configure(client_t *c)
 
 /** Apply size hints to the client's new geometry.
  */
-static area_t
+area_t
 client_apply_size_hints(client_t *c, area_t geometry)
 {
     int32_t minw = 0, minh = 0;
@@ -3023,6 +3025,8 @@ client_unmanage(client_t *c, client_unmanage_t reason)
     lua_pop(L, 1);
 
     luaA_class_emit_signal(L, &client_class, "list", 0);
+
+    tree_node_unlink_client(L, c);
 
     if(strut_has_value(&c->strut))
         screen_update_workarea(c->screen);

@@ -1638,6 +1638,7 @@ file = {
     '../objects/drawable.c',
     '../objects/screen.c',
     '../objects/tag.c',
+    '../objects/tree_node.c',
     '../objects/window.c',
 
     -- LUA libraries

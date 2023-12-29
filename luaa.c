@@ -58,6 +58,7 @@
 #include "objects/selection_transfer.h"
 #include "objects/selection_watcher.h"
 #include "objects/tag.h"
+#include "objects/tree_node.h"
 #include "property.h"
 #include "selection.h"
 #include "spawn.h"
@@ -1189,6 +1190,9 @@ luaA_init(xdgHandle* xdg, string_array_t *searchpath)
 
     /* Export selection watcher */
     selection_watcher_class_setup(L);
+
+    /* Export the client/drawin tree node */
+    tree_node_class_setup(L);
 
     /* Setup the selection interface */
     selection_setup(L);

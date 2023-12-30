@@ -268,7 +268,7 @@ luaA_drawin_get(lua_State *L)
  * \param udx The index of the drawin.
  * \param geometry The new geometry.
  */
-static void
+void
 drawin_moveresize(lua_State *L, int udx, area_t geometry)
 {
     drawin_t *w = luaA_checkudata(L, udx, &drawin_class);

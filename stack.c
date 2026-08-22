@@ -48,6 +48,7 @@ stack_windows(lua_State *L, const char *context, client_t *c, drawin_t *d)
 
     lua_settable(L, -3);
 
+    printf("\n\nC SIDE RESTACK! %s\n", context);
     luaA_class_emit_signal(L, &client_class, "request::restack", 2);
 }
 

@@ -1,5 +1,63 @@
+update_transience	table: 0x5588ef834470	c1	false	table: 0x5588ef7a8190
+
+
+NODE	table: 0x5588ef7a8190	c1
+
+
+
+MOO	table: 0x5588ef834470	table: 0x5588ef834470
+update_transience	table: 0x5588ef7f32c0	c2	false	table: 0x5588ef53a4f0
+
+
+NODE	table: 0x5588ef53a4f0	c2
+
+
+
+MOO	table: 0x5588ef7f32c0	table: 0x5588ef7f32c0
+update_transience	table: 0x5588ef83a150	c3	false	table: 0x5588ef7f9260
+
+
+NODE	table: 0x5588ef7f9260	c3
+
+
+
+MOO	table: 0x5588ef83a150	table: 0x5588ef83a150
+update_transience	table: 0x5588ef7dc6b0	c4	false	table: 0x5588ef7b2600
+
+
+NODE	table: 0x5588ef7b2600	c4
+
+
+
+MOO	table: 0x5588ef7dc6b0	table: 0x5588ef7dc6b0
+START RESTACK
+  --> ontop
+  --> fullscreen
+  --> above
+  --> normal
+    --> c4
+    --> c3
+    --> c2
+    --> c1
+  --> below
+  --> desktop
+END RESTACK
 c1:1, c2:2, c3:3, c4:4, 
 Call focus.byidx
+RAISE!	false
 c1:1, c2:2, c3:3, c4:4, 
 Call focus.byidx
+RAISE!	true
 c1:1, c2:2, c3:3, c4:4, 
+START RESTACK
+  --> ontop
+  --> fullscreen
+  --> above
+  --> normal
+    --> c2
+    --> c4
+    --> c3
+    --> c1
+  --> below
+  --> desktop
+END RESTACK

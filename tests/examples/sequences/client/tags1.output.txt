@@ -1,2 +1,91 @@
+update_transience	table: 0x55dc996e35d0		false	table: 0x55dc9942fa40
+
+
+NODE	table: 0x55dc9942fa40	
+
+
+
+MOO	table: 0x55dc996e35d0	table: 0x55dc996e35d0
+update_transience	table: 0x55dc9967c310		false	table: 0x55dc99419580
+
+
+NODE	table: 0x55dc99419580	
+
+
+
+MOO	table: 0x55dc9967c310	table: 0x55dc9967c310
+update_transience	table: 0x55dc996b3230		false	table: 0x55dc995ecd80
+
+
+NODE	table: 0x55dc995ecd80	
+
+
+
+MOO	table: 0x55dc996b3230	table: 0x55dc996b3230
+update_transience	table: 0x55dc996b66f0		false	table: 0x55dc99662df0
+
+
+NODE	table: 0x55dc99662df0	
+
+
+
+MOO	table: 0x55dc996b66f0	table: 0x55dc996b66f0
+update_transience	table: 0x55dc995c0f80		false	table: 0x55dc99567010
+
+
+NODE	table: 0x55dc99567010	
+
+
+
+MOO	table: 0x55dc995c0f80	table: 0x55dc995c0f80
+update_transience	table: 0x55dc9970fe60		false	table: 0x55dc9952d4c0
+
+
+NODE	table: 0x55dc9952d4c0	
+
+
+
+MOO	table: 0x55dc9970fe60	table: 0x55dc9970fe60
+update_transience	table: 0x55dc996ed200		false	table: 0x55dc996fc4c0
+
+
+NODE	table: 0x55dc996fc4c0	
+
+
+
+MOO	table: 0x55dc996ed200	table: 0x55dc996ed200
+update_transience	table: 0x55dc99538700		false	table: 0x55dc9971e250
+
+
+NODE	table: 0x55dc9971e250	
+
+
+
+MOO	table: 0x55dc99538700	table: 0x55dc99538700
+update_transience	table: 0x55dc99576a70		false	table: 0x55dc9973f480
+
+
+NODE	table: 0x55dc9973f480	
+
+
+
+MOO	table: 0x55dc99576a70	table: 0x55dc99576a70
+START RESTACK
+  --> ontop
+  --> fullscreen
+  --> above
+  --> normal
+    --> 
+    --> 
+    --> 
+    --> 
+    --> 
+    --> 
+    --> 
+    --> 
+    --> 
+  --> below
+  --> desktop
+END RESTACK
 Tag:	2	two
 Tag:	3	three

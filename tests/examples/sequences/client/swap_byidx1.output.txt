@@ -1,3 +1,47 @@
+update_transience	table: 0x56276213d120	c1	false	table: 0x562762244290
+
+
+NODE	table: 0x562762244290	c1
+
+
+
+MOO	table: 0x56276213d120	table: 0x56276213d120
+update_transience	table: 0x5627620241a0	c2	false	table: 0x562762208ac0
+
+
+NODE	table: 0x562762208ac0	c2
+
+
+
+MOO	table: 0x5627620241a0	table: 0x5627620241a0
+update_transience	table: 0x5627621ee1e0	c3	false	table: 0x5627622011b0
+
+
+NODE	table: 0x5627622011b0	c3
+
+
+
+MOO	table: 0x5627621ee1e0	table: 0x5627621ee1e0
+update_transience	table: 0x56276229d080	c4	false	table: 0x56276228b9f0
+
+
+NODE	table: 0x56276228b9f0	c4
+
+
+
+MOO	table: 0x56276229d080	table: 0x56276229d080
+START RESTACK
+  --> ontop
+  --> fullscreen
+  --> above
+  --> normal
+    --> c4
+    --> c3
+    --> c2
+    --> c1
+  --> below
+  --> desktop
+END RESTACK
 c1:1, c2:2, c3:3, c4:4, 
 Call swap.byidx
 c4:1, c2:2, c3:3, c1:4, 

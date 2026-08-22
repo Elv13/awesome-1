@@ -1,3 +1,20 @@
+update_transience	table: 0x5585c6745170		false	table: 0x5585c67f6400
+
+
+NODE	table: 0x5585c67f6400	
+
+
+
+MOO	table: 0x5585c6745170	table: 0x5585c6745170
+START RESTACK
+  --> ontop
+  --> fullscreen
+  --> above
+  --> normal
+    --> 
+  --> below
+  --> desktop
+END RESTACK
 Client geometry:	4	10	60	50
 Client geometry:	104	110	60	50
 Client geometry:	104	110	160	150

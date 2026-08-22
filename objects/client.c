@@ -4678,9 +4678,9 @@ client_class_setup(lua_State *L)
                             (lua_class_propfunc_t) luaA_client_get_content,
                             NULL);
     luaA_class_add_property(&client_class, "type",
-                            NULL,
+                            (lua_class_propfunc_t) luaA_window_set_type,
                             (lua_class_propfunc_t) luaA_window_get_type,
-                            NULL);
+                            (lua_class_propfunc_t) luaA_window_set_type);
     luaA_class_add_property(&client_class, "class",
                             NULL,
                             (lua_class_propfunc_t) luaA_client_get_class,

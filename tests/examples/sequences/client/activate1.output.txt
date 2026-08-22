@@ -1,1 +1,117 @@
+update_transience	table: 0x558081543170	c1	false	table: 0x558081698340
+
+
+NODE	table: 0x558081698340	c1
+
+
+
+MOO	table: 0x558081543170	table: 0x558081543170
+update_transience	table: 0x558081741e80	c2	false	table: 0x55808172f090
+
+
+NODE	table: 0x55808172f090	c2
+
+
+
+MOO	table: 0x558081741e80	table: 0x558081741e80
+update_transience	table: 0x558081722a70	c3	false	table: 0x5580817009b0
+
+
+NODE	table: 0x5580817009b0	c3
+
+
+
+MOO	table: 0x558081722a70	table: 0x558081722a70
+update_transience	table: 0x558081575da0	c4	false	table: 0x558081918690
+
+
+NODE	table: 0x558081918690	c4
+
+
+
+MOO	table: 0x558081575da0	table: 0x558081575da0
+update_transience	table: 0x5580814e4630	c5	false	table: 0x5580817330e0
+
+
+NODE	table: 0x5580817330e0	c5
+
+
+
+MOO	table: 0x5580814e4630	table: 0x5580814e4630
+update_transience	table: 0x558081879b30	c6	false	table: 0x5580815f9e30
+
+
+NODE	table: 0x5580815f9e30	c6
+
+
+
+MOO	table: 0x558081879b30	table: 0x558081879b30
+update_transience	table: 0x55808189dd00	c7	false	table: 0x558081805170
+
+
+NODE	table: 0x558081805170	c7
+
+
+
+MOO	table: 0x55808189dd00	table: 0x55808189dd00
+update_transience	table: 0x5580815a2000	c8	false	table: 0x558081a02c70
+
+
+NODE	table: 0x558081a02c70	c8
+
+
+
+MOO	table: 0x5580815a2000	table: 0x5580815a2000
+update_transience	table: 0x558081849210	c9	false	table: 0x558081862bc0
+
+
+NODE	table: 0x558081862bc0	c9
+
+
+
+MOO	table: 0x558081849210	table: 0x558081849210
+RAISE!	true
+START RESTACK
+  --> ontop
+  --> fullscreen
+  --> above
+  --> normal
+    --> c2
+    --> c9
+    --> c8
+    --> c7
+    --> c6
+    --> c5
+    --> c4
+    --> c3
+    --> c1
+  --> below
+  --> desktop
+END RESTACK
+RAISE!	true
+
+
+NODE	table: 0x558081a02c70	c8
+
+
+
+MOO	table: 0x5580815a2000	table: 0x5580815a2000
+RAISE!	false
 Confirm:	true	true
+START RESTACK
+  --> ontop
+  --> fullscreen
+  --> above
+  --> normal
+    --> c8
+    --> c2
+    --> c9
+    --> c7
+    --> c6
+    --> c5
+    --> c4
+    --> c3
+    --> c1
+  --> below
+  --> desktop
+END RESTACK

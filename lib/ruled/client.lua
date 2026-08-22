@@ -183,6 +183,7 @@ end
 -- @noreturn
 -- @staticfct ruled.client.apply
 function module.apply(c)
+    print("\nRULE APPLY\n")
     crules:apply(c)
 end
 

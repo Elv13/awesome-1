@@ -1,1 +1,18 @@
+update_transience	table: 0x559366ebbee0		false	table: 0x559366ec11f0
+
+
+NODE	table: 0x559366ec11f0	
+
+
+
+MOO	table: 0x559366ebbee0	table: 0x559366ebbee0
+START RESTACK
+  --> ontop
+  --> fullscreen
+  --> above
+  --> normal
+    --> 
+  --> below
+  --> desktop
+END RESTACK
 Client geometry:	200	200	300	240

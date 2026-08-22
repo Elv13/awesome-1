@@ -1,5 +1,58 @@
+update_transience	table: 0x559c01f2fc40	Example Client	false	table: 0x559c01f337d0
+
+
+NODE	table: 0x559c01f337d0	Example Client
+
+
+
+MOO	table: 0x559c01f2fc40	table: 0x559c01f2fc40
+update_transience	table: 0x559c01f3b6b0	Example Client	false	table: 0x559c01f3f1a0
+
+
+NODE	table: 0x559c01f3f1a0	Example Client
+
+
+
+MOO	table: 0x559c01f3b6b0	table: 0x559c01f3b6b0
+update_transience	table: 0x559c01f461e0	Example Client	false	table: 0x559c01f4a130
+
+
+NODE	table: 0x559c01f4a130	Example Client
+
+
+
+MOO	table: 0x559c01f461e0	table: 0x559c01f461e0
+update_transience	table: 0x559c01f51420	Example Client	false	table: 0x559c01f55450
+
+
+NODE	table: 0x559c01f55450	Example Client
+
+
+
+MOO	table: 0x559c01f51420	table: 0x559c01f51420
+update_transience	table: 0x559c01f5c940	Example Client	false	table: 0x559c01f60cc0
+
+
+NODE	table: 0x559c01f60cc0	Example Client
+
+
+
+MOO	table: 0x559c01f5c940	table: 0x559c01f5c940
 Client #1:	0	1	2
 Client #2:	0	2	2
 Client #3:	1	1	3
 Client #4:	1	2	3
 Client #5:	1	3	3
+START RESTACK
+  --> ontop
+  --> fullscreen
+  --> above
+  --> normal
+    --> Example Client
+    --> Example Client
+    --> Example Client
+    --> Example Client
+    --> Example Client
+  --> below
+  --> desktop
+END RESTACK

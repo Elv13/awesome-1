@@ -1,1 +1,18 @@
+update_transience	table: 0x5571fb785170	Example Client	false	table: 0x5571fb775b10
+
+
+NODE	table: 0x5571fb775b10	Example Client
+
+
+
+MOO	table: 0x5571fb785170	table: 0x5571fb785170
 Closest corner:	top_left
+START RESTACK
+  --> ontop
+  --> fullscreen
+  --> above
+  --> normal
+    --> Example Client
+  --> below
+  --> desktop
+END RESTACK

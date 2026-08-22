@@ -268,7 +268,7 @@ function timer.weak_start_new(timeout, callback)
     end)
 end
 
-local delayed_calls = {}
+local delayed_calls, is_run_delayed_calls_now_running = {}, false
 
 --- Run all pending delayed calls now. This function should best not be used at
 -- all, because it means that less batching happens and the delayed calls run
@@ -276,9 +276,14 @@ local delayed_calls = {}
 -- @staticfct gears.timer.run_delayed_calls_now
 -- @noreturn
 function timer.run_delayed_calls_now()
+    assert(not is_run_delayed_calls_now_running, "Infinite loop detected" .. debug.traceback())
+    is_run_delayed_calls_now_running = true
+
     for _, callback in ipairs(delayed_calls) do
         protected_call(unpack(callback))
     end
+    is_run_delayed_calls_now_running = false
+
     delayed_calls = {}
 end
 
